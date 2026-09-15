@@ -1,14 +1,14 @@
 {
-  "version": 3,
+  "version": 2,
   "configurePresets": [
     {
-      "name": "vs-sdl",
-      "displayName": "Visual Studio 2026 con SDL",
+      "name": "vcpkg",
       "generator": "Visual Studio 18 2026",
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
       }
     }
   ]
 }
+
