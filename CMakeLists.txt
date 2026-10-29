@@ -1,11 +1,30 @@
-cmake_minimum_required(VERSION 3.10) # Establece la versión mínima
-project(EngineProyect)
+cmake_minimum_required(VERSION 3.15)
+project(KurokoEngine) # Name your engine
 
-# Busca SDL3 a través de vcpkg
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Find Packages
 find_package(SDL3 CONFIG REQUIRED)
+find_package(glad CONFIG REQUIRED)
+find_package(glm CONFIG REQUIRED)
+find_package(assimp CONFIG REQUIRED)
+find_package(DevIL REQUIRED)
+find_package(imgui CONFIG REQUIRED)
 
-# Genera el archivo ejecutable (.exe)
-add_executable(EngineProyect main.cpp)
+file(GLOB_RECURSE SRC_FILES "src/*.cpp")
+file(GLOB_RECURSE INCLUDE_FILES "include/*.h")
 
-# Enlaza la librería estática
-target_link_libraries(EngineProyect PRIVATE SDL3::SDL3)
+add_executable(${PROJECT_NAME} ${SRC_FILES} ${INCLUDE_FILES})
+
+target_include_directories(${PROJECT_NAME} PRIVATE src include src/Engine include/Engine src/Editor include/Editor)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE 
+    SDL3::SDL3
+    glad::glad 
+    glm::glm 
+    assimp::assimp 
+    DevIL::IL       
+    DevIL::ILU      
+    imgui::imgui
+)

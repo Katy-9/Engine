@@ -1,6 +1,18 @@
 {
+  "name": "kuroko-engine",
+  "version": "1.0.0",
   "dependencies": [
     "sdl3",
-    "glad"
+    "glad",
+    "glm",
+    "assimp",
+    "devil",
+    {
+      "name": "imgui",
+      "features": [
+        "sdl3-binding",
+        "opengl3-binding"
+      ]
+    }
   ]
 }
