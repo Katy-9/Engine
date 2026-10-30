@@ -3,7 +3,7 @@
 #include "ModuleRenderer3D.h"
 #include "ModuleInput.h"
 #include "ModuleEditor.h"
-#include "ModuleScene.h" // <--- Este include faltaba y causaba el primer error
+#include "ModuleScene.h"
 #include "ModuleCamera3D.h"
 #include "ModuleImporter.h"
 #include "Log.h"
@@ -14,7 +14,7 @@ Application::Application() {
     window = new ModuleWindow(this);
     renderer3D = new ModuleRenderer3D(this);
     importer = new ModuleImporter(this);
-	camera = new ModuleCamera3D(this); // <--- Inicializamos la cámara
+	camera = new ModuleCamera3D(this);
     scene = new ModuleScene(this);
     editor = new ModuleEditor(this);
 
@@ -22,7 +22,7 @@ Application::Application() {
     modules.push_back(window);
     modules.push_back(renderer3D);
     modules.push_back(importer);
-	modules.push_back(camera); // <--- Agregamos la cámara a la lista de módulos
+	modules.push_back(camera);
     modules.push_back(scene);
     modules.push_back(editor);
 }
@@ -48,6 +48,14 @@ update_status Application::Update() {
     uint64_t currentTime = SDL_GetPerformanceCounter();
     dt = (float)(currentTime - lastTime) / SDL_GetPerformanceFrequency();
     lastTime = currentTime;
+
+    if (dt > 0.0f) {
+        float fps = 1.0f / dt;
+        fps_history.push_back(fps);
+        if (fps_history.size() > 100) {
+            fps_history.erase(fps_history.begin());
+        }
+    }
 
     for (auto* mod : modules) {
         if (ret == UPDATE_CONTINUE) ret = mod->PreUpdate(dt);

@@ -30,6 +30,8 @@ public:
 	ModuleCamera3D* camera = nullptr;
 	ModuleImporter* importer = nullptr;
 
+    std::vector<float> fps_history;
+
 private:
     std::vector<Module*> modules;
     uint64_t lastTime = 0;

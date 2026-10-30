@@ -11,10 +11,12 @@
 
 #include <string>
 #include <vector>
-#include <cstdio> // Para snprintf
+#include <cstdio>
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_opengl3.h>
+#include <IL/il.h>
+#include <glad/glad.h>
 
 ModuleEditor::ModuleEditor(Application* app) : Module(app) {}
 ModuleEditor::~ModuleEditor() {}
@@ -45,9 +47,8 @@ update_status ModuleEditor::Update(float dt) {
     DrawHierarchy();
     DrawInspector();
 
-    if (showAboutWindow) {
-        DrawAboutWindow();
-    }
+    if (showAboutWindow) DrawAboutWindow();
+    if (showConfigurationWindow) DrawConfiguration();
 
     return ret;
 }
@@ -73,6 +74,12 @@ update_status ModuleEditor::DrawMainMenuBar() {
             if (ImGui::MenuItem("Exit")) { ret = UPDATE_STOP; }
             ImGui::EndMenu();
         }
+
+        if (ImGui::BeginMenu("View")) {
+            ImGui::MenuItem("Configuration", NULL, &showConfigurationWindow);
+            ImGui::EndMenu();
+        }
+
         if (ImGui::BeginMenu("Help")) {
             if (ImGui::MenuItem("GitHub Repository")) { system("start https://github.com/tu-usuario/tu-repo"); }
             if (ImGui::MenuItem("About Kuroko Engine")) { showAboutWindow = !showAboutWindow; }
@@ -185,6 +192,37 @@ void ModuleEditor::DrawInspector() {
     }
     else {
         ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Select a GameObject to inspect.");
+    }
+
+    ImGui::End();
+}
+
+void ModuleEditor::DrawConfiguration() {
+    ImGui::Begin("Configuration", &showConfigurationWindow);
+
+    if (ImGui::CollapsingHeader("Application", ImGuiTreeNodeFlags_DefaultOpen)) {
+        // Leemos la lista de FPS del Engine
+        std::vector<float>& fps = App->fps_history;
+
+        if (!fps.empty()) {
+            char title[25];
+            snprintf(title, 25, "Framerate %.1f", fps.back());
+
+            // Dibuja un Histograma (Gráfico de barras) de 310x100 píxeles, con límite máximo de 120 FPS
+            ImGui::PlotHistogram("##framerate", &fps[0], (int)fps.size(), 0, title, 0.0f, 120.0f, ImVec2(310, 100));
+        }
+    }
+
+    if (ImGui::CollapsingHeader("Hardware", ImGuiTreeNodeFlags_DefaultOpen)) {
+        // En SDL3 la función se llama así:
+        ImGui::Text("CPUs: %d", SDL_GetNumLogicalCPUCores());
+        ImGui::Text("System RAM: %d MB", SDL_GetSystemRAM());
+    }
+
+    if (ImGui::CollapsingHeader("Software", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::Text("SDL Version: 3.x"); // Estamos usando nativo SDL3
+        ImGui::Text("OpenGL Version: %s", glGetString(GL_VERSION));
+        ImGui::Text("DevIL Version: %d", ilGetInteger(IL_VERSION_NUM));
     }
 
     ImGui::End();

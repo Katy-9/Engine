@@ -23,9 +23,10 @@ private:
     void DrawHierarchy();
     void DrawHierarchyNode(GameObject* go);
     void DrawAboutWindow();
-
+    void DrawConfiguration();
     void DrawInspector();
 
 private:
     bool showAboutWindow = false;
+    bool showConfigurationWindow = true;
 };
