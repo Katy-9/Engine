@@ -3,6 +3,9 @@
 #include "ModuleRenderer3D.h"
 #include "ModuleInput.h"
 #include "ModuleEditor.h"
+#include "ModuleScene.h" // <--- Este include faltaba y causaba el primer error
+#include "ModuleCamera3D.h"
+#include "ModuleImporter.h"
 #include "Log.h"
 #include <SDL3/SDL.h>
 
@@ -10,12 +13,17 @@ Application::Application() {
     input = new ModuleInput(this);
     window = new ModuleWindow(this);
     renderer3D = new ModuleRenderer3D(this);
+    importer = new ModuleImporter(this);
+	camera = new ModuleCamera3D(this); // <--- Inicializamos la cámara
+    scene = new ModuleScene(this);
     editor = new ModuleEditor(this);
 
-    // El orden de ejecución es crítico
     modules.push_back(input);
     modules.push_back(window);
     modules.push_back(renderer3D);
+    modules.push_back(importer);
+	modules.push_back(camera); // <--- Agregamos la cámara a la lista de módulos
+    modules.push_back(scene);
     modules.push_back(editor);
 }
 
@@ -37,7 +45,6 @@ bool Application::Init() {
 update_status Application::Update() {
     update_status ret = UPDATE_CONTINUE;
 
-    // Calcular Delta Time (dt)
     uint64_t currentTime = SDL_GetPerformanceCounter();
     dt = (float)(currentTime - lastTime) / SDL_GetPerformanceFrequency();
     lastTime = currentTime;

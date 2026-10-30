@@ -1,6 +1,8 @@
 #pragma once
 #include "Module.h"
 
+class GameObject;
+
 class ModuleEditor : public Module {
 public:
     ModuleEditor(Application* app);
@@ -12,7 +14,18 @@ public:
     update_status PostUpdate(float dt) override;
     bool CleanUp() override;
 
+public:
+    GameObject* selectedGameObject = nullptr;
+
 private:
-    void DrawMainMenuBar();
+    update_status DrawMainMenuBar();
     void DrawConsole();
+    void DrawHierarchy();
+    void DrawHierarchyNode(GameObject* go);
+    void DrawAboutWindow();
+
+    void DrawInspector();
+
+private:
+    bool showAboutWindow = false;
 };

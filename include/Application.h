@@ -8,6 +8,9 @@ class ModuleWindow;
 class ModuleRenderer3D;
 class ModuleInput;
 class ModuleEditor;
+class ModuleScene;
+class ModuleCamera3D;
+class ModuleImporter;
 
 class Application {
 public:
@@ -23,6 +26,9 @@ public:
     ModuleRenderer3D* renderer3D = nullptr;
     ModuleInput* input = nullptr;
     ModuleEditor* editor = nullptr;
+    ModuleScene* scene = nullptr;
+	ModuleCamera3D* camera = nullptr;
+	ModuleImporter* importer = nullptr;
 
 private:
     std::vector<Module*> modules;

@@ -14,4 +14,7 @@ public:
 
 public:
     SDL_GLContext context;
+
+    // --- ESTA ES LA LÍNEA CLAVE QUE FALTABA ---
+    unsigned int defaultShaderProgram = 0;
 };
