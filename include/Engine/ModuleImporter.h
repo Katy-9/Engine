@@ -1,8 +1,10 @@
 #pragma once
 #include "Module.h"
 #include <string>
+#include <unordered_map>
 
 class GameObject;
+class ComponentMaterial;
 
 class ModuleImporter : public Module {
 public:
@@ -12,6 +14,14 @@ public:
     bool Init() override;
     bool CleanUp() override;
 
-    void LoadFBX(const std::string& path);
+    GameObject* LoadFBX(const std::string& path);   // ahora devuelve el root (nullptr si falla)
     void LoadTexture(const std::string& path, GameObject* target);
+
+private:
+    struct TextureInfo { unsigned int id; int width; int height; };
+
+    bool ApplyTexture(const std::string& path, ComponentMaterial* material);
+    void ApplyTextureRecursive(const std::string& path, GameObject* go);
+
+    std::unordered_map<std::string, TextureInfo> textureCache;   // una textura = una carga
 };

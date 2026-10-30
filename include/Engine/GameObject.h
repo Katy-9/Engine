@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include "Component.h"
+#include <glm/glm.hpp>
 
 class GameObject {
 public:
@@ -9,6 +10,9 @@ public:
     ~GameObject();
 
     void Update(float dt);
+
+    // AABB en coordenadas de mundo de este objeto y todos sus hijos. Devuelve false si no hay ninguna malla.
+    bool GetWorldAABB(glm::vec3& outMin, glm::vec3& outMax);
 
     // --- TEMPLATES DE COMPONENTES ---
 

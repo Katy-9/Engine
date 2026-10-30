@@ -14,9 +14,6 @@ public:
     update_status PostUpdate(float dt) override;
     bool CleanUp() override;
 
-public:
-    GameObject* selectedGameObject = nullptr;
-
 private:
     update_status DrawMainMenuBar();
     void DrawConsole();
@@ -29,4 +26,7 @@ private:
 private:
     bool showAboutWindow = false;
     bool showConfigurationWindow = true;
+    bool showHierarchy = true;
+    bool showInspector = true;
+    bool showConsole = true;
 };

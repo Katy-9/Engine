@@ -37,3 +37,13 @@ bool ModuleWindow::CleanUp() {
     SDL_Quit();
     return true;
 }
+
+update_status ModuleWindow::PreUpdate(float dt) {
+    int w = 0, h = 0;
+    SDL_GetWindowSizeInPixels(window, &w, &h);
+    if (w > 0 && h > 0) {      // minimizada = 0x0: ignoramos para no dividir entre 0
+        width = w;
+        height = h;
+    }
+    return UPDATE_CONTINUE;
+}

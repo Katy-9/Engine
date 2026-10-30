@@ -137,6 +137,11 @@ void DrawGameObject(GameObject* go, unsigned int shader) {
             }
         }
 
+        else {
+            glUniform4f(glGetUniformLocation(shader, "colorTint"), 1.0f, 1.0f, 1.0f, 1.0f);
+            glUniform1i(glGetUniformLocation(shader, "hasTexture"), 0);
+        }
+
         mesh->Draw(shader);
         glBindTexture(GL_TEXTURE_2D, 0);
     }
@@ -147,9 +152,13 @@ void DrawGameObject(GameObject* go, unsigned int shader) {
 }
 
 update_status ModuleRenderer3D::PreUpdate(float dt) {
+    glViewport(0, 0, App->window->width, App->window->height);
     glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    return UPDATE_CONTINUE;
+}
 
+update_status ModuleRenderer3D::PostUpdate(float dt) {
     glUseProgram(defaultShaderProgram);
 
     glm::mat4 view = App->camera->GetViewMatrix();
@@ -165,11 +174,6 @@ update_status ModuleRenderer3D::PreUpdate(float dt) {
     }
 
     glUseProgram(0);
-
-    return UPDATE_CONTINUE;
-}
-
-update_status ModuleRenderer3D::PostUpdate(float dt) {
     return UPDATE_CONTINUE;
 }
 

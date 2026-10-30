@@ -1,6 +1,7 @@
 #pragma once
 #include "Component.h"
 #include <vector>
+#include <glm/glm.hpp>
 
 struct Vertex {
     float x, y, z;
@@ -39,4 +40,9 @@ public:
     bool showWireframe = false;
     bool showVertexNormals = false;
     bool showFaceNormals = false;
+
+    glm::vec3 aabbMin{ 0.0f };
+    glm::vec3 aabbMax{ 0.0f };
+
+    std::vector<glm::vec3> normals;   // una normal por vértice (del FBX, o calculada si no vienen)
 };

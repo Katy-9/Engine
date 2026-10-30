@@ -10,6 +10,8 @@ public:
     bool Init() override;
     bool CleanUp() override;
 
+    update_status PreUpdate(float dt) override;
+
 public:
     SDL_Window* window = nullptr;
     int width = 1280;

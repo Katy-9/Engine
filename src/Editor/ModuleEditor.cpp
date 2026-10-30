@@ -9,6 +9,7 @@
 #include "ComponentMaterial.h"
 #include "PrimitiveGenerator.h"
 #include "Log.h"
+#include "ModuleInput.h"
 
 #include <string>
 #include <vector>
@@ -31,6 +32,10 @@ bool ModuleEditor::Init() {
     ImGui::StyleColorsDark();
     ImGui_ImplSDL3_InitForOpenGL(App->window->window, App->renderer3D->context);
     ImGui_ImplOpenGL3_Init("#version 460");
+
+    io.IniFilename = nullptr;   // evita que se genere imgui.ini en la build
+    App->input->AddEventListener([](const SDL_Event& e) { ImGui_ImplSDL3_ProcessEvent(&e); });
+
     return true;
 }
 
@@ -38,6 +43,8 @@ update_status ModuleEditor::PreUpdate(float dt) {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
+    App->input->uiCapturesMouse = ImGui::GetIO().WantCaptureMouse;
+    App->input->uiCapturesKeyboard = ImGui::GetIO().WantTextInput;
     return UPDATE_CONTINUE;
 }
 
@@ -137,12 +144,12 @@ void ModuleEditor::DrawHierarchy() {
 
 void ModuleEditor::DrawHierarchyNode(GameObject* go) {
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
-    if (selectedGameObject == go) flags |= ImGuiTreeNodeFlags_Selected;
+    if (App->scene->selected == go) flags |= ImGuiTreeNodeFlags_Selected;
     if (go->children.empty()) flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 
-    bool nodeOpen = ImGui::TreeNodeEx(go, flags, go->name.c_str());
+    bool nodeOpen = ImGui::TreeNodeEx(go, flags, "%s", go->name.c_str());
     if (ImGui::IsItemClicked()) {
-        selectedGameObject = go;
+        App->scene->selected = go;
     }
 
     if (nodeOpen && !go->children.empty()) {
@@ -166,6 +173,7 @@ void ModuleEditor::DrawConsole() {
 
 void ModuleEditor::DrawInspector() {
     ImGui::Begin("Inspector");
+    GameObject* selectedGameObject = App->scene->selected;
 
     if (selectedGameObject != nullptr) {
         ImGui::Checkbox("##Active", &selectedGameObject->active);

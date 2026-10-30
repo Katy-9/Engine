@@ -19,12 +19,21 @@ add_executable(${PROJECT_NAME} ${SRC_FILES} ${INCLUDE_FILES})
 
 target_include_directories(${PROJECT_NAME} PRIVATE src include src/Engine include/Engine src/Editor include/Editor)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE 
+target_link_libraries(${PROJECT_NAME} PRIVATE
     SDL3::SDL3
-    glad::glad 
-    glm::glm 
-    assimp::assimp 
-    DevIL::IL       
-    DevIL::ILU      
+    glad::glad
+    glm::glm
+    assimp::assimp
+    DevIL::IL
+    DevIL::ILU
     imgui::imgui
 )
+
+# Copia la carpeta Assets junto al .exe después de compilar
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/Assets
+            $<TARGET_FILE_DIR:${PROJECT_NAME}>/Assets)
+
+# Que Visual Studio arranque el motor y no ALL_BUILD
+set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})

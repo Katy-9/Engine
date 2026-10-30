@@ -14,6 +14,8 @@ public:
 
     GameObject* GetRoot() const { return root; }
 
+    GameObject* selected = nullptr;   // GameObject seleccionado (lo escribe el editor, lo leen camara e input)
+
 private:
     GameObject* root = nullptr;
 };

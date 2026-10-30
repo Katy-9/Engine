@@ -13,7 +13,7 @@ public:
     bool CleanUp() override;
 
 public:
-    SDL_GLContext context;
+    SDL_GLContext context = nullptr;
 
     // --- ESTA ES LA LÍNEA CLAVE QUE FALTABA ---
     unsigned int defaultShaderProgram = 0;

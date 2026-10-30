@@ -6,6 +6,8 @@
 #include "ComponentMesh.h"
 #include "ComponentMaterial.h"
 #include "Log.h"
+#include <string>
+#include <SDL3/SDL.h>
 
 ModuleScene::ModuleScene(Application* app) : Module(app) {}
 
@@ -15,18 +17,10 @@ bool ModuleScene::Init() {
     LOG("Initializing Scene");
     root = new GameObject("Scene Root");
 
-    App->importer->LoadFBX("Assets/baker_house.fbx");
+    const char* base = SDL_GetBasePath();
+    const std::string basePath = base ? base : "";
 
-    // Buscamos la casa que acabamos de importar y la ponemos de pie
-    for (GameObject* child : root->children) {
-        if (child->name == "FBX_Model") {
-            ComponentTransform* transform = child->GetComponent<ComponentTransform>(ComponentType::TRANSFORM);
-            if (transform) {
-                transform->eulerRotation = glm::vec3(-90.0f, 0.0f, 0.0f);
-                transform->UpdateRotationFromEuler();
-            }
-        }
-    }
+    App->importer->LoadFBX(basePath + "Assets/baker_house.fbx");
 
     // La cámara
     GameObject* mainCam = new GameObject("Main Camera", root);

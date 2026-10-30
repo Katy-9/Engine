@@ -1,11 +1,10 @@
 #include "ModuleInput.h"
 #include "Application.h"
 #include "ModuleImporter.h"
-#include "ModuleEditor.h"
 #include "Log.h"
 #include <SDL3/SDL.h>
-#include <imgui_impl_sdl3.h>
 #include <string>
+#include "ModuleScene.h"
 
 ModuleInput::ModuleInput(Application* app) : Module(app) {}
 ModuleInput::~ModuleInput() {}
@@ -21,14 +20,14 @@ update_status ModuleInput::PreUpdate(float dt) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
 
-        ImGui_ImplSDL3_ProcessEvent(&event);
+        for (const SDLEventListener& l : listeners) l(event);
 
         if (event.type == SDL_EVENT_QUIT) {
             return UPDATE_STOP;
         }
 
         if (event.type == SDL_EVENT_MOUSE_WHEEL) {
-            mouse_wheel = event.wheel.y;
+            mouse_wheel += event.wheel.y;   // acumula si llegan varios eventos en un frame
         }
 
         // --- DRAG AND DROP ---
@@ -44,8 +43,7 @@ update_status ModuleInput::PreUpdate(float dt) {
             else if (extension == "png" || extension == "dds" || extension == "tga") {
                 LOG("Texture dropped! File: %s", filePath.c_str());
 
-                // AHORA SÍ FUNCIONARÁ PORQUE ES PÚBLICO
-                App->importer->LoadTexture(filePath, App->editor->selectedGameObject);
+                App->importer->LoadTexture(filePath, App->scene->selected);
             }
         }
     }

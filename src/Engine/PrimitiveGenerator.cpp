@@ -93,11 +93,11 @@ namespace PrimitiveGenerator {
              0.0f, 1.0f,  0.0f,  0.5f, 1.0f
         };
         unsigned int ind[] = {
-            0, 2, 1,   0, 3, 2, // Base
-            0, 1, 4,            // Front
-            1, 2, 4,            // Right
-            2, 3, 4,            // Back
-            3, 0, 4             // Left
+            0, 1, 2,   0, 2, 3, // Base
+            0, 4, 1,            // Front
+            1, 4, 2,            // Right
+            2, 4, 3,            // Back
+            3, 4, 0             // Left
         };
 
         for (int i = 0; i < 5; i++) mesh->vertices.push_back({ v[i * 5], v[i * 5 + 1], v[i * 5 + 2], v[i * 5 + 3], v[i * 5 + 4] });
@@ -169,8 +169,8 @@ namespace PrimitiveGenerator {
             int top2 = (i + 1) * 2;
             int bot2 = (i + 1) * 2 + 1;
 
-            mesh->indices.push_back(top1); mesh->indices.push_back(bot1); mesh->indices.push_back(top2);
-            mesh->indices.push_back(top2); mesh->indices.push_back(bot1); mesh->indices.push_back(bot2);
+            mesh->indices.push_back(top1); mesh->indices.push_back(top2); mesh->indices.push_back(bot1);
+            mesh->indices.push_back(top2); mesh->indices.push_back(bot2); mesh->indices.push_back(bot1);
         }
 
         // 2. Crear las tapas (Top y Bottom)

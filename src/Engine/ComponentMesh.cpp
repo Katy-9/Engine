@@ -21,6 +21,13 @@ ComponentMesh::~ComponentMesh() {
 void ComponentMesh::GenerateBuffers() {
     if (vertices.empty()) return;
 
+    // AABB local: el vértice más lejano en cada eje
+    aabbMin = aabbMax = glm::vec3(vertices[0].x, vertices[0].y, vertices[0].z);
+    for (const Vertex& v : vertices) {
+        aabbMin = glm::min(aabbMin, glm::vec3(v.x, v.y, v.z));
+        aabbMax = glm::max(aabbMax, glm::vec3(v.x, v.y, v.z));
+    }
+
     // 1. GENERAR BUFFER DE LA MALLA PRINCIPAL
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
