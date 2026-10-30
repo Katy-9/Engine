@@ -150,14 +150,14 @@ namespace PrimitiveGenerator {
         float radius = 0.5f;
         float height = 1.0f;
 
-        // Creamos los vértices a lo largo del círculo
+        // 1. Crear los vértices de las paredes
         for (int i = 0; i <= segments; ++i) {
-            float theta = (float)i / (float)segments * 2.0f * M_PI;
+            float theta = (float)i / (float)segments * 2.0f * (float)M_PI;
             float x = radius * std::cos(theta);
             float z = radius * std::sin(theta);
             float u = (float)i / (float)segments;
 
-            // Vértice de arriba y vértice de abajo
+            // Vértice de arriba y vértice de abajo para la pared lateral
             mesh->vertices.push_back({ x,  height / 2.0f, z, u, 1.0f });
             mesh->vertices.push_back({ x, -height / 2.0f, z, u, 0.0f });
         }
@@ -171,6 +171,49 @@ namespace PrimitiveGenerator {
 
             mesh->indices.push_back(top1); mesh->indices.push_back(bot1); mesh->indices.push_back(top2);
             mesh->indices.push_back(top2); mesh->indices.push_back(bot1); mesh->indices.push_back(bot2);
+        }
+
+        // 2. Crear las tapas (Top y Bottom)
+        // Guardamos dónde empiezan los vértices de las tapas en nuestro array
+        int topCenterIdx = mesh->vertices.size();
+        mesh->vertices.push_back({ 0.0f, height / 2.0f, 0.0f, 0.5f, 0.5f }); // Centro Arriba
+
+        int botCenterIdx = mesh->vertices.size();
+        mesh->vertices.push_back({ 0.0f, -height / 2.0f, 0.0f, 0.5f, 0.5f }); // Centro Abajo
+
+        // Guardamos el índice donde empezarán los vértices del borde para las tapas
+        int capStartIndex = mesh->vertices.size();
+
+        // Añadimos otra vez los vértices del círculo (esta vez apuntando sus normales hacia arriba/abajo para que la luz reaccione bien, aunque no lo notemos sin shader de luz)
+        for (int i = 0; i <= segments; ++i) {
+            float theta = (float)i / (float)segments * 2.0f * (float)M_PI;
+            float x = radius * std::cos(theta);
+            float z = radius * std::sin(theta);
+
+            // Coordenadas UV circulares para las tapas
+            float u = 0.5f + 0.5f * std::cos(theta);
+            float v = 0.5f + 0.5f * std::sin(theta);
+
+            mesh->vertices.push_back({ x,  height / 2.0f, z, u, v }); // Borde Arriba
+            mesh->vertices.push_back({ x, -height / 2.0f, z, u, v }); // Borde Abajo
+        }
+
+        // Conectar los triángulos de las tapas ("porciones de pizza")
+        for (int i = 0; i < segments; ++i) {
+            int currentTop = capStartIndex + (i * 2);
+            int currentBot = capStartIndex + (i * 2) + 1;
+            int nextTop = capStartIndex + ((i + 1) * 2);
+            int nextBot = capStartIndex + ((i + 1) * 2) + 1;
+
+            // Triángulo de la tapa superior
+            mesh->indices.push_back(topCenterIdx);
+            mesh->indices.push_back(nextTop);
+            mesh->indices.push_back(currentTop);
+
+            // Triángulo de la tapa inferior (al revés para que apunte hacia abajo)
+            mesh->indices.push_back(botCenterIdx);
+            mesh->indices.push_back(currentBot);
+            mesh->indices.push_back(nextBot);
         }
 
         mesh->numVertices = mesh->vertices.size();
