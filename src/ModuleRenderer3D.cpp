@@ -8,11 +8,15 @@
 #include "ComponentTransform.h"
 #include "ComponentMaterial.h"
 #include "Log.h"
+
+#include <vector>
 #include <glad/glad.h>
 #include <glm/gtc/type_ptr.hpp>
 
 ModuleRenderer3D::ModuleRenderer3D(Application* app) : Module(app) {}
 ModuleRenderer3D::~ModuleRenderer3D() {}
+
+unsigned int checkerTextureID = 0;
 
 bool ModuleRenderer3D::Init() {
     LOG("Creating 3D Renderer context");
@@ -21,11 +25,33 @@ bool ModuleRenderer3D::Init() {
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) return false;
 
     glEnable(GL_DEPTH_TEST);
-    // IMPORTANTE: Quitamos el CULL FACE temporalmente para poder ver la casa por dentro y fuera
     glDisable(GL_CULL_FACE);
     glFrontFace(GL_CCW);
 
-    // --- SHADER MEJORADO ---
+    // --- CREAR TEXTURA CHECKERBOARD (Ajedrez) ---
+    const int CHECKERS_HEIGHT = 64;
+    const int CHECKERS_WIDTH = 64;
+    GLubyte checkerImage[CHECKERS_HEIGHT][CHECKERS_WIDTH][4];
+    for (int i = 0; i < CHECKERS_HEIGHT; i++) {
+        for (int j = 0; j < CHECKERS_WIDTH; j++) {
+            int c = ((((i & 0x8) == 0) ^ (((j & 0x8)) == 0))) * 255;
+            checkerImage[i][j][0] = (GLubyte)c; // R
+            checkerImage[i][j][1] = (GLubyte)c; // G
+            checkerImage[i][j][2] = (GLubyte)c; // B
+            checkerImage[i][j][3] = (GLubyte)255; // Alpha
+        }
+    }
+
+    glGenTextures(1, &checkerTextureID);
+    glBindTexture(GL_TEXTURE_2D, checkerTextureID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); // Nearest para que no se vea borroso
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, CHECKERS_WIDTH, CHECKERS_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, checkerImage);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // --- COMPILAR SHADER ---
     const char* vertexShaderSource = "#version 460 core\n"
         "layout (location = 0) in vec3 aPos;\n"
         "layout (location = 1) in vec2 aTexCoord;\n"
@@ -43,12 +69,12 @@ bool ModuleRenderer3D::Init() {
         "out vec4 FragColor;\n"
         "uniform sampler2D ourTexture;\n"
         "uniform vec4 colorTint;\n"
-        "uniform int hasTexture;\n" // <--- NUEVO: Chivato para saber si hay textura
+        "uniform int hasTexture;\n"
         "void main() {\n"
         "   if(hasTexture == 1) {\n"
         "       FragColor = texture(ourTexture, TexCoord) * colorTint;\n"
         "   } else {\n"
-        "       FragColor = colorTint;\n" // Si no hay textura, usamos el color puro
+        "       FragColor = colorTint;\n"
         "   }\n"
         "}\n\0";
 
@@ -71,7 +97,6 @@ bool ModuleRenderer3D::Init() {
     glAttachShader(defaultShaderProgram, vertexShader);
     glAttachShader(defaultShaderProgram, fragmentShader);
     glLinkProgram(defaultShaderProgram);
-
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
@@ -92,19 +117,22 @@ void DrawGameObject(GameObject* go, unsigned int shader) {
         if (material) {
             unsigned int tintLoc = glGetUniformLocation(shader, "colorTint");
             glUniform4fv(tintLoc, 1, material->colorTint);
-
             unsigned int hasTexLoc = glGetUniformLocation(shader, "hasTexture");
 
-            // Si tenemos una textura cargada
-            if (material->textureID != 0) {
-                glUniform1i(hasTexLoc, 1); // Le decimos al shader: SÍ HAY TEXTURA
+            // Lógica para elegir qué textura usar
+            unsigned int textureToUse = material->textureID;
+            if (material->useCheckerTexture) {
+                textureToUse = checkerTextureID; // Usamos el ajedrez si el botón está pulsado
+            }
 
+            if (textureToUse != 0) {
+                glUniform1i(hasTexLoc, 1);
                 glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, material->textureID);
+                glBindTexture(GL_TEXTURE_2D, textureToUse);
                 glUniform1i(glGetUniformLocation(shader, "ourTexture"), 0);
             }
             else {
-                glUniform1i(hasTexLoc, 0); // Le decimos al shader: NO HAY TEXTURA
+                glUniform1i(hasTexLoc, 0);
                 glBindTexture(GL_TEXTURE_2D, 0);
             }
         }

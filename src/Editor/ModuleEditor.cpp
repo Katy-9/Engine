@@ -7,6 +7,7 @@
 #include "ComponentTransform.h"
 #include "ComponentMesh.h"
 #include "ComponentMaterial.h"
+#include "PrimitiveGenerator.h"
 #include "Log.h"
 
 #include <string>
@@ -75,11 +76,31 @@ update_status ModuleEditor::DrawMainMenuBar() {
             ImGui::EndMenu();
         }
 
+        // --- NUEVO: MENÚ PARA CREAR FORMAS BÁSICAS ---
+        if (ImGui::BeginMenu("GameObject")) {
+            if (ImGui::BeginMenu("3D Object")) {
+                if (ImGui::MenuItem("Cube")) {
+                    PrimitiveGenerator::CreateCube(App->scene->GetRoot());
+                }
+                if (ImGui::MenuItem("Sphere")) {
+                    // Una esfera de 20x20 segmentos suele verse muy bien
+                    PrimitiveGenerator::CreateSphere(20, 20, App->scene->GetRoot());
+                }
+                if (ImGui::MenuItem("Pyramid")) {
+                    PrimitiveGenerator::CreatePyramid(App->scene->GetRoot());
+                }
+                if (ImGui::MenuItem("Cylinder")) {
+                    PrimitiveGenerator::CreateCylinder(20, App->scene->GetRoot());
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenu();
+        }
+
         if (ImGui::BeginMenu("View")) {
             ImGui::MenuItem("Configuration", NULL, &showConfigurationWindow);
             ImGui::EndMenu();
         }
-
         if (ImGui::BeginMenu("Help")) {
             if (ImGui::MenuItem("GitHub Repository")) { system("start https://github.com/tu-usuario/tu-repo"); }
             if (ImGui::MenuItem("About Kuroko Engine")) { showAboutWindow = !showAboutWindow; }
@@ -187,6 +208,7 @@ void ModuleEditor::DrawInspector() {
                 ImGui::Text("Path: %s", material->texturePath.c_str());
                 ImGui::Text("Size: %dx%d", material->textureWidth, material->textureHeight);
                 ImGui::ColorEdit4("Color Tint", material->colorTint);
+                ImGui::Checkbox("Use Checker Texture", &material->useCheckerTexture);
             }
         }
     }

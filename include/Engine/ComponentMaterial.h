@@ -16,4 +16,6 @@ public:
 
     // Color Picker (R, G, B, A)
     float colorTint[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+    bool useCheckerTexture = false;
 };

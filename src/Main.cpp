@@ -1,9 +1,11 @@
 #include "Application.h"
 #include "Log.h"
 
+Application* App = nullptr;
+
 int main(int argc, char* argv[]) {
     LOG("Engine starting...");
-    Application* App = new Application();
+    App = new Application();
 
     if (!App->Init()) {
         LOG("Engine Initialization Failed!");
