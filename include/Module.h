@@ -1,7 +1,7 @@
 #pragma once
 #include "Globals.h"
 
-class Application; // Declaración anticipada vital
+class Application;
 
 class Module {
 public:

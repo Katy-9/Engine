@@ -18,7 +18,7 @@ public:
     unsigned int ebo = 0;
     unsigned int vao = 0;
 
-    // --- NUEVO: Buffers para las líneas de las Normales ---
+    // --- Buffers para las líneas de las Normales ---
     unsigned int vao_normals = 0;
     unsigned int vbo_normals = 0;
     int numNormalVertices = 0;
@@ -26,7 +26,6 @@ public:
     unsigned int vao_face_normals = 0;
     unsigned int vbo_face_normals = 0;
     int numFaceNormalVertices = 0;
-    // ------------------------------------------------------
 
     int numVertices = 0;
     int numIndices = 0;
@@ -44,5 +43,5 @@ public:
     glm::vec3 aabbMin{ 0.0f };
     glm::vec3 aabbMax{ 0.0f };
 
-    std::vector<glm::vec3> normals;   // una normal por vértice (del FBX, o calculada si no vienen)
+    std::vector<glm::vec3> normals;
 };

@@ -16,7 +16,7 @@ public:
 
 public:
     glm::vec3 Position;
-    glm::vec3 Reference;   // punto que miramos al orbitar o al hacer focus
+    glm::vec3 Reference;
 
     glm::vec3 Front;
     glm::vec3 Up;

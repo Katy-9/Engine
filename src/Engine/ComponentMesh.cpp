@@ -141,15 +141,15 @@ void ComponentMesh::Draw(unsigned int shaderProgram, bool forceWireframe) {
 
         if (showVertexNormals && vao_normals != 0) {
             float green[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
-            glUniform4fv(tintLoc, 1, green); // Cambiamos el color a Verde
+            glUniform4fv(tintLoc, 1, green);
 
             glBindVertexArray(vao_normals);
-            glDrawArrays(GL_LINES, 0, numNormalVertices); // GL_LINES en vez de GL_TRIANGLES
+            glDrawArrays(GL_LINES, 0, numNormalVertices);
         }
 
         if (showFaceNormals && vao_face_normals != 0) {
             float blue[4] = { 0.0f, 0.0f, 1.0f, 1.0f };
-            glUniform4fv(tintLoc, 1, blue); // Cambiamos el color a Azul
+            glUniform4fv(tintLoc, 1, blue);
 
             glBindVertexArray(vao_face_normals);
             glDrawArrays(GL_LINES, 0, numFaceNormalVertices);

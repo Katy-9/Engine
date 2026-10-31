@@ -55,7 +55,6 @@ bool ModuleImporter::Init() {
     ilInit();
     iluInit();
 
-    // Obligamos a DevIL a leer las texturas al derecho para OpenGL
     ilEnable(IL_ORIGIN_SET);
     ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
 
@@ -153,7 +152,7 @@ GameObject* ModuleImporter::LoadFBX(const std::string& path) {
 bool ModuleImporter::ApplyTexture(const std::string& path, ComponentMaterial* material) {
     auto it = textureCache.find(path);
 
-    if (it == textureCache.end()) {   // primera vez que vemos esta textura: la cargamos
+    if (it == textureCache.end()) {
         unsigned int imageID;
         ilGenImages(1, &imageID);
         ilBindImage(imageID);
@@ -182,7 +181,7 @@ bool ModuleImporter::ApplyTexture(const std::string& path, ComponentMaterial* ma
         it = textureCache.emplace(path, info).first;
     }
 
-    material->textureID = it->second.id;      // el dueño de la textura es la caché, no el material
+    material->textureID = it->second.id;
     material->textureWidth = it->second.width;
     material->textureHeight = it->second.height;
     material->texturePath = path;
@@ -200,5 +199,5 @@ void ModuleImporter::LoadTexture(const std::string& path, GameObject* target) {
         LOG("No GameObject selected to apply the texture!");
         return;
     }
-    ApplyTextureRecursive(path, target);   // así también vale seleccionar el padre del FBX
+    ApplyTextureRecursive(path, target);
 }

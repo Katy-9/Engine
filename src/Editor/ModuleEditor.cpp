@@ -33,26 +33,26 @@
 #include <IL/il.h>
 #include <glad/glad.h>
 
-// --- DATOS DEL PROYECTO: rellena estos valores ---
-static const std::string REPO_URL = "https://github.com/USUARIO/REPOSITORIO";   // sin "/" al final
+// --- DATOS DEL PROYECTO ---
+static const std::string REPO_URL = "https://github.com/Katy-9/Engine";
 static const char* ENGINE_VERSION = "0.1";
 
 struct TeamMember { const char* name; const char* github; };
 static const TeamMember TEAM[] = {
-    { "Nombre Apellido", "usuario-github" },
-    // { "Otro Miembro", "su-usuario" },
+    { "Queralt Escutia", "Keral06" },
+    { "Sofía Giner", "Katy-9" },
+    { "Joel Martínez", "Jowey7"}
 };
 
-// Coloca la próxima ventana como fracción del área de pantalla (x, y, ancho, alto).
 // ImGuiCond_FirstUseEver: solo la primera vez; si el usuario la mueve, se respeta.
 static void PlaceWindow(float x, float y, float w, float h) {
     const ImGuiViewport* vp = ImGui::GetMainViewport();
-    const float top = ImGui::GetFrameHeight();              // altura de la barra de menú
+    const float top = ImGui::GetFrameHeight();
     const float areaW = vp->Size.x;
     const float areaH = vp->Size.y - top;
 
-    ImGui::SetNextWindowPos(ImVec2(vp->Pos.x + x * areaW, vp->Pos.y + top + y * areaH), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(w * areaW, h * areaH), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowPos(ImVec2(vp->Pos.x + x * areaW, vp->Pos.y + top + y * areaH), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(w * areaW, h * areaH), ImGuiCond_Always);
 }
 
 ModuleEditor::ModuleEditor(Application* app) : Module(app) {}
@@ -68,7 +68,7 @@ bool ModuleEditor::Init() {
     ImGui_ImplSDL3_InitForOpenGL(App->window->window, App->renderer3D->context);
     ImGui_ImplOpenGL3_Init("#version 460");
 
-    io.IniFilename = nullptr;   // evita que se genere imgui.ini en la build
+    io.IniFilename = nullptr;
     App->input->AddEventListener([](const SDL_Event& e) { ImGui_ImplSDL3_ProcessEvent(&e); });
 
     return true;
@@ -229,7 +229,6 @@ void ModuleEditor::DrawInspector() {
         ImGui::Checkbox("##Active", &selectedGameObject->active);
         ImGui::SameLine();
 
-        // --- ARREGLADO EL MANEJO DE STRINGS PARA IMGUI ---
         char nameBuffer[256];
         snprintf(nameBuffer, sizeof(nameBuffer), "%s", selectedGameObject->name.c_str());
         if (ImGui::InputText("##Name", nameBuffer, 256)) {
@@ -292,7 +291,6 @@ void ModuleEditor::DrawConfiguration() {
         if (!fps.empty()) {
             char title[32];
             snprintf(title, sizeof(title), "Framerate %.1f", fps.back());
-            // Escala automática: 0 hasta el máximo de los datos
             ImGui::PlotHistogram("##framerate", fps.data(), (int)fps.size(), 0, title, 0.0f, FLT_MAX, ImVec2(310, 100));
         }
     }

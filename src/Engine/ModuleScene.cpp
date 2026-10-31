@@ -39,7 +39,7 @@ update_status ModuleScene::Update(float dt) {
 bool ModuleScene::CleanUp() {
     LOG("Destroying Scene");
     if (root) {
-        delete root; // Esto borrará automáticamente a todos sus hijos
+        delete root;
     }
     return true;
 }

@@ -14,7 +14,7 @@ ModuleCamera3D::ModuleCamera3D(Application* app) : Module(app) {
 
     yaw = -90.0f;
     pitch = -15.0f;
-    UpdateVectors();   // antes Front/Up/Right nacían sin inicializar
+    UpdateVectors();
 }
 
 ModuleCamera3D::~ModuleCamera3D() {}
@@ -33,7 +33,7 @@ update_status ModuleCamera3D::Update(float dt) {
 
     const float boost = (keys[SDL_SCANCODE_LSHIFT] || keys[SDL_SCANCODE_RSHIFT]) ? 2.0f : 1.0f;
     const float moveSpeed = baseSpeed * boost * dt;
-    const bool mouseFree = !App->input->uiCapturesMouse;   // si el ratón está sobre ImGui, no movemos la cámara
+    const bool mouseFree = !App->input->uiCapturesMouse;
 
     const bool orbiting = alt && leftClick && mouseFree;
 

@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    // BUCLE PRINCIPAL (Game Loop)
+    // BUCLE PRINCIPAL
     update_status state = UPDATE_CONTINUE;
     while (state == UPDATE_CONTINUE) {
         state = App->Update();

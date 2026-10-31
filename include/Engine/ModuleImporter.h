@@ -14,7 +14,7 @@ public:
     bool Init() override;
     bool CleanUp() override;
 
-    GameObject* LoadFBX(const std::string& path);   // ahora devuelve el root (nullptr si falla)
+    GameObject* LoadFBX(const std::string& path);
     void LoadTexture(const std::string& path, GameObject* target);
 
     size_t GetLoadedTextureCount() const { return textureCache.size(); }
@@ -25,5 +25,5 @@ private:
     bool ApplyTexture(const std::string& path, ComponentMaterial* material);
     void ApplyTextureRecursive(const std::string& path, GameObject* go);
 
-    std::unordered_map<std::string, TextureInfo> textureCache;   // una textura = una carga
+    std::unordered_map<std::string, TextureInfo> textureCache;
 };

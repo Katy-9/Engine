@@ -8,5 +8,4 @@
 
 void Log_Engine(const char file[], int line, const char* format, ...);
 
-// Buffer global para que la consola de ImGui lo pueda leer
 extern std::vector<std::string> g_EngineLog;

@@ -40,7 +40,7 @@ static void AccumulateAABB(GameObject* go, glm::vec3& mn, glm::vec3& mx, bool& f
 
     if (mesh && transform) {
         const glm::mat4 m = transform->GetGlobalMatrix();
-        for (int i = 0; i < 8; ++i) {   // las 8 esquinas de la caja local, pasadas a mundo
+        for (int i = 0; i < 8; ++i) {
             const glm::vec3 corner((i & 1) ? mesh->aabbMax.x : mesh->aabbMin.x,
                 (i & 2) ? mesh->aabbMax.y : mesh->aabbMin.y,
                 (i & 4) ? mesh->aabbMax.z : mesh->aabbMin.z);

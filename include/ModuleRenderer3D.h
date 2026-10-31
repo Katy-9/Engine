@@ -24,7 +24,7 @@ public:
     bool showAxis = true;
     bool showAABB = false;
     bool vsync = true;
-    bool wireframe = false;    // wireframe global (el de cada objeto sigue en el Inspector)
+    bool wireframe = false;
     bool depthTest = true;
     bool cullFace = false;
     void SetVSync(bool enable);
@@ -37,5 +37,5 @@ private:
     unsigned int debugProgram = 0;
     unsigned int gridVAO = 0, gridVBO = 0;
     unsigned int aabbVAO = 0, aabbVBO = 0;
-    int gridVertexCount = 0;   // los 6 vértices de los ejes van justo después
+    int gridVertexCount = 0;
 };
