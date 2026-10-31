@@ -17,6 +17,8 @@ public:
     GameObject* LoadFBX(const std::string& path);   // ahora devuelve el root (nullptr si falla)
     void LoadTexture(const std::string& path, GameObject* target);
 
+    size_t GetLoadedTextureCount() const { return textureCache.size(); }
+
 private:
     struct TextureInfo { unsigned int id; int width; int height; };
 

@@ -11,12 +11,15 @@ void Log_Engine(const char file[], int line, const char* format, ...)
     vsnprintf(tmpString, 4096, format, ap);
     va_end(ap);
 
-    // Formatear el texto
-    std::string logMessage = std::string(tmpString) + "\n";
+    // Quitamos saltos de línea finales: los mensajes de Assimp ya traen uno y dejaban líneas en blanco
+    std::string message = tmpString;
+    while (!message.empty() && (message.back() == '\n' || message.back() == '\r')) message.pop_back();
 
-    // Mostrar en la consola normal de Visual Studio
-    std::cout << logMessage;
+    std::cout << message << "\n";
 
-    // Guardarlo en nuestro vector para que la ventana de ImGui lo lea
-    g_EngineLog.push_back(logMessage);
+    // Tope de líneas: si no, el vector crece sin límite
+    if (g_EngineLog.size() > 1000) {
+        g_EngineLog.erase(g_EngineLog.begin(), g_EngineLog.begin() + 200);
+    }
+    g_EngineLog.push_back(message);
 }

@@ -35,7 +35,7 @@ public:
     std::vector<unsigned int> indices;
 
     void GenerateBuffers();
-    void Draw(unsigned int shaderProgram);
+    void Draw(unsigned int shaderProgram, bool forceWireframe = false);
 
     bool showWireframe = false;
     bool showVertexNormals = false;

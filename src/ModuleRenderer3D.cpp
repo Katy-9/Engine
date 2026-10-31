@@ -100,10 +100,14 @@ bool ModuleRenderer3D::Init() {
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
+    SetVSync(vsync);
+
+    CreateDebugResources();
+
     return true;
 }
 
-void DrawGameObject(GameObject* go, unsigned int shader) {
+void DrawGameObject(GameObject* go, unsigned int shader, bool wireframe) {
     if (!go->active) return;
 
     ComponentMesh* mesh = go->GetComponent<ComponentMesh>(ComponentType::MESH);
@@ -142,13 +146,123 @@ void DrawGameObject(GameObject* go, unsigned int shader) {
             glUniform1i(glGetUniformLocation(shader, "hasTexture"), 0);
         }
 
-        mesh->Draw(shader);
+        mesh->Draw(shader, wireframe);
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
     for (GameObject* child : go->children) {
-        DrawGameObject(child, shader);
+        DrawGameObject(child, shader, wireframe);
     }
+}
+
+static unsigned int CompileProgram(const char* vertexSrc, const char* fragmentSrc) {
+    auto compile = [](GLenum type, const char* src) {
+        unsigned int shader = glCreateShader(type);
+        glShaderSource(shader, 1, &src, nullptr);
+        glCompileShader(shader);
+        int ok;
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
+        if (!ok) { char log[512]; glGetShaderInfoLog(shader, 512, nullptr, log); LOG("SHADER ERROR: %s", log); }
+        return shader;
+        };
+
+    unsigned int vs = compile(GL_VERTEX_SHADER, vertexSrc);
+    unsigned int fs = compile(GL_FRAGMENT_SHADER, fragmentSrc);
+    unsigned int program = glCreateProgram();
+    glAttachShader(program, vs);
+    glAttachShader(program, fs);
+    glLinkProgram(program);
+
+    int ok;
+    glGetProgramiv(program, GL_LINK_STATUS, &ok);
+    if (!ok) { char log[512]; glGetProgramInfoLog(program, 512, nullptr, log); LOG("SHADER LINK ERROR: %s", log); }
+
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+    return program;
+}
+
+void ModuleRenderer3D::CreateDebugResources() {
+    // Shader de líneas: posición + color por vértice
+    debugProgram = CompileProgram(
+        "#version 330 core\n"
+        "layout (location = 0) in vec3 aPos;\n"
+        "layout (location = 1) in vec3 aColor;\n"
+        "uniform mat4 viewProj;\n"
+        "out vec3 vColor;\n"
+        "void main() { vColor = aColor; gl_Position = viewProj * vec4(aPos, 1.0); }\n",
+        "#version 330 core\n"
+        "in vec3 vColor;\n"
+        "out vec4 FragColor;\n"
+        "void main() { FragColor = vec4(vColor, 1.0); }\n");
+
+    // Grid en el plano XZ + 3 ejes (x y z r g b por vértice)
+    std::vector<float> v;
+    auto line = [&v](glm::vec3 a, glm::vec3 b, glm::vec3 c) {
+        v.insert(v.end(), { a.x, a.y, a.z, c.x, c.y, c.z, b.x, b.y, b.z, c.x, c.y, c.z });
+        };
+
+    const float half = 50.0f;
+    for (int i = -(int)half; i <= (int)half; ++i) {
+        if (i == 0) continue;   // las líneas centrales las ocupan los ejes X y Z
+        line({ (float)i, 0.0f, -half }, { (float)i, 0.0f, half }, glm::vec3(0.35f));
+        line({ -half, 0.0f, (float)i }, { half, 0.0f, (float)i }, glm::vec3(0.35f));
+    }
+    gridVertexCount = (int)(v.size() / 6);
+
+    line({ -half, 0.0f, 0.0f }, { half, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f });   // X rojo
+    line({ 0.0f, 0.0f, 0.0f }, { 0.0f, 5.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });    // Y verde
+    line({ 0.0f, 0.0f, -half }, { 0.0f, 0.0f, half }, { 0.0f, 0.0f, 1.0f });   // Z azul
+
+    auto setup = [](unsigned int& vao, unsigned int& vbo, const float* data, size_t bytes, GLenum usage) {
+        glGenVertexArrays(1, &vao);
+        glBindVertexArray(vao);
+        glGenBuffers(1, &vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, bytes, data, usage);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+        };
+    setup(gridVAO, gridVBO, v.data(), v.size() * sizeof(float), GL_STATIC_DRAW);
+    setup(aabbVAO, aabbVBO, nullptr, 24 * 6 * sizeof(float), GL_DYNAMIC_DRAW);   // buffer reutilizable para las cajas
+    glBindVertexArray(0);
+}
+
+void ModuleRenderer3D::DrawAABB(const glm::vec3& mn, const glm::vec3& mx, const glm::vec3& color) const {
+    auto corner = [&](int i) {
+        return glm::vec3((i & 1) ? mx.x : mn.x, (i & 2) ? mx.y : mn.y, (i & 4) ? mx.z : mn.z);
+        };
+
+    float v[24 * 6];
+    int n = 0;
+    for (int i = 0; i < 8; ++i) {
+        for (int bit : { 1, 2, 4 }) {
+            if (i & bit) continue;   // cada arista = dos esquinas que difieren en un solo bit (12 aristas)
+            for (int k : { i, i | bit }) {
+                const glm::vec3 p = corner(k);
+                v[n++] = p.x; v[n++] = p.y; v[n++] = p.z;
+                v[n++] = color.x; v[n++] = color.y; v[n++] = color.z;
+            }
+        }
+    }
+
+    glBindVertexArray(aabbVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, aabbVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(v), v);
+    glDrawArrays(GL_LINES, 0, 24);
+}
+
+void ModuleRenderer3D::DrawAABBs(GameObject* go) const {
+    if (!go->active) return;
+
+    glm::vec3 mn, mx;
+    if (go->GetComponent<ComponentMesh>(ComponentType::MESH) && go->GetWorldAABB(mn, mx)) {
+        const glm::vec3 color = (go == App->scene->selected) ? glm::vec3(1.0f, 1.0f, 0.0f) : glm::vec3(0.6f);
+        DrawAABB(mn, mx, color);   // amarillo si es el seleccionado, gris el resto
+    }
+    for (GameObject* child : go->children) DrawAABBs(child);
 }
 
 update_status ModuleRenderer3D::PreUpdate(float dt) {
@@ -158,27 +272,49 @@ update_status ModuleRenderer3D::PreUpdate(float dt) {
     return UPDATE_CONTINUE;
 }
 
+void ModuleRenderer3D::SetVSync(bool enable) {
+    vsync = enable;
+    if (!SDL_GL_SetSwapInterval(enable ? 1 : 0)) LOG("VSync not supported: %s", SDL_GetError());
+}
+
 update_status ModuleRenderer3D::PostUpdate(float dt) {
+    const glm::mat4 view = App->camera->GetViewMatrix();
+    const glm::mat4 projection = App->camera->GetProjectionMatrix();
+
+    if (depthTest) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+    if (cullFace) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+
+    // --- ESCENA ---
     glUseProgram(defaultShaderProgram);
-
-    glm::mat4 view = App->camera->GetViewMatrix();
-    glm::mat4 projection = App->camera->GetProjectionMatrix();
-
-    unsigned int viewLoc = glGetUniformLocation(defaultShaderProgram, "view");
-    unsigned int projLoc = glGetUniformLocation(defaultShaderProgram, "projection");
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(glGetUniformLocation(defaultShaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(glGetUniformLocation(defaultShaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
     if (App->scene->GetRoot()) {
-        DrawGameObject(App->scene->GetRoot(), defaultShaderProgram);
+        DrawGameObject(App->scene->GetRoot(), defaultShaderProgram, wireframe);
     }
 
+    // --- AYUDAS VISUALES: grid, ejes y cajas ---
+    glUseProgram(debugProgram);
+    glUniformMatrix4fv(glGetUniformLocation(debugProgram, "viewProj"), 1, GL_FALSE, glm::value_ptr(projection * view));
+
+    glBindVertexArray(gridVAO);
+    if (showGrid) glDrawArrays(GL_LINES, 0, gridVertexCount);
+    if (showAxis) glDrawArrays(GL_LINES, gridVertexCount, 6);
+
+    if (showAABB && App->scene->GetRoot()) DrawAABBs(App->scene->GetRoot());
+
+    glBindVertexArray(0);
     glUseProgram(0);
     return UPDATE_CONTINUE;
 }
 
 bool ModuleRenderer3D::CleanUp() {
     glDeleteProgram(defaultShaderProgram);
+    glDeleteProgram(debugProgram);
+    glDeleteVertexArrays(1, &gridVAO);
+    glDeleteBuffers(1, &gridVBO);
+    glDeleteVertexArrays(1, &aabbVAO);
+    glDeleteBuffers(1, &aabbVBO);
     SDL_GL_DestroyContext(context);
     return true;
 }

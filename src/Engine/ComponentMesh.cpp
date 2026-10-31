@@ -46,17 +46,36 @@ void ComponentMesh::GenerateBuffers() {
     glBindVertexArray(0);
 
     // 2. GENERAR BUFFER PARA NORMALES DE VÉRTICE (Lineas Verdes)
-    std::vector<float> v_normals;
-    for (size_t i = 0; i < vertices.size(); i++) {
-        glm::vec3 p(vertices[i].x, vertices[i].y, vertices[i].z);
-        glm::vec3 dir = glm::normalize(p);
-        if (glm::length(dir) < 0.1f) dir = glm::vec3(0, 1, 0); // Evitar errores en el origen
+    const auto pos = [](const Vertex& v) { return glm::vec3(v.x, v.y, v.z); };
 
-        // Punto inicial y punto final de la raya
-        v_normals.push_back(p.x); v_normals.push_back(p.y); v_normals.push_back(p.z);
-        v_normals.push_back(p.x + dir.x * 1.5f); v_normals.push_back(p.y + dir.y * 1.5f); v_normals.push_back(p.z + dir.z * 1.5f);
+    // Si el importador no dio normales (primitivas), las calculamos sumando las normales de las caras vecinas
+    if (normals.size() != vertices.size()) {
+        normals.assign(vertices.size(), glm::vec3(0.0f));
+        for (size_t i = 0; i + 2 < indices.size(); i += 3) {
+            const glm::vec3 p0 = pos(vertices[indices[i]]);
+            const glm::vec3 n = glm::cross(pos(vertices[indices[i + 1]]) - p0, pos(vertices[indices[i + 2]]) - p0);
+            normals[indices[i]] += n;
+            normals[indices[i + 1]] += n;
+            normals[indices[i + 2]] += n;
+        }
+        for (glm::vec3& n : normals) {
+            n = glm::length(n) > 1e-6f ? glm::normalize(n) : glm::vec3(0.0f, 1.0f, 0.0f);
+        }
     }
-    numNormalVertices = v_normals.size() / 3;
+
+    // Las líneas miden una fracción del tamaño del modelo, así que se ven bien en una casa y en un cubo
+    const float modelSize = glm::length(aabbMax - aabbMin);
+
+    // 2. GENERAR BUFFER PARA NORMALES DE VÉRTICE (Lineas Verdes)
+    std::vector<float> v_normals;
+    v_normals.reserve(vertices.size() * 6);
+    const float vertexLen = 0.05f * modelSize;
+    for (size_t i = 0; i < vertices.size(); i++) {
+        const glm::vec3 p = pos(vertices[i]);
+        const glm::vec3 end = p + normals[i] * vertexLen;
+        v_normals.insert(v_normals.end(), { p.x, p.y, p.z, end.x, end.y, end.z });
+    }
+    numNormalVertices = (int)(v_normals.size() / 3);
 
     glGenVertexArrays(1, &vao_normals);
     glBindVertexArray(vao_normals);
@@ -67,24 +86,22 @@ void ComponentMesh::GenerateBuffers() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glBindVertexArray(0);
 
-    // 3. GENERAR BUFFER PARA NORMALES DE CARA (Líneas Azules)
+    // 3. GENERAR BUFFER PARA NORMALES DE CARA (Líneas Azules): del centro de cada triángulo hacia fuera
     std::vector<float> f_normals;
-    if (!indices.empty()) {
-        for (size_t i = 0; i < indices.size(); i += 3) {
-            glm::vec3 v0(vertices[indices[i]].x, vertices[indices[i]].y, vertices[indices[i]].z);
-            glm::vec3 v1(vertices[indices[i + 1]].x, vertices[indices[i + 1]].y, vertices[indices[i + 1]].z);
-            glm::vec3 v2(vertices[indices[i + 2]].x, vertices[indices[i + 2]].y, vertices[indices[i + 2]].z);
+    const float faceLen = 0.08f * modelSize;
+    for (size_t i = 0; i + 2 < indices.size(); i += 3) {
+        const glm::vec3 v0 = pos(vertices[indices[i]]);
+        const glm::vec3 v1 = pos(vertices[indices[i + 1]]);
+        const glm::vec3 v2 = pos(vertices[indices[i + 2]]);
 
-            glm::vec3 center = (v0 + v1 + v2) / 3.0f;
-            glm::vec3 faceNormal = glm::normalize(glm::cross(v1 - v0, v2 - v0)); // Producto vectorial real
+        const glm::vec3 cross = glm::cross(v1 - v0, v2 - v0);
+        if (glm::length(cross) < 1e-8f) continue;   // triángulo degenerado: normalize daría NaN
 
-            f_normals.push_back(center.x); f_normals.push_back(center.y); f_normals.push_back(center.z);
-            f_normals.push_back(center.x + faceNormal.x * 2.0f);
-            f_normals.push_back(center.y + faceNormal.y * 2.0f);
-            f_normals.push_back(center.z + faceNormal.z * 2.0f);
-        }
+        const glm::vec3 center = (v0 + v1 + v2) / 3.0f;
+        const glm::vec3 end = center + glm::normalize(cross) * faceLen;
+        f_normals.insert(f_normals.end(), { center.x, center.y, center.z, end.x, end.y, end.z });
     }
-    numFaceNormalVertices = f_normals.size() / 3;
+    numFaceNormalVertices = (int)(f_normals.size() / 3);
 
     glGenVertexArrays(1, &vao_face_normals);
     glBindVertexArray(vao_face_normals);
@@ -96,17 +113,13 @@ void ComponentMesh::GenerateBuffers() {
     glBindVertexArray(0);
 }
 
-void ComponentMesh::Draw(unsigned int shaderProgram) {
+void ComponentMesh::Draw(unsigned int shaderProgram, bool forceWireframe) {
     if (vao == 0) return;
 
     // --- DIBUJAR MALLA PRINCIPAL ---
     glBindVertexArray(vao);
-    if (showWireframe) {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    }
-    else {
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    }
+
+    glPolygonMode(GL_FRONT_AND_BACK, (showWireframe || forceWireframe) ? GL_LINE : GL_FILL);
 
     if (!indices.empty()) {
         glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0);

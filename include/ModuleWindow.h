@@ -16,4 +16,6 @@ public:
     SDL_Window* window = nullptr;
     int width = 1280;
     int height = 720;
+    bool fullscreen = false;
+    void SetFullscreen(bool enable);
 };

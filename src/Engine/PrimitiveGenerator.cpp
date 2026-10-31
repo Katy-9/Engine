@@ -221,4 +221,63 @@ namespace PrimitiveGenerator {
         mesh->GenerateBuffers();
         return go;
     }
+
+    GameObject* CreatePlane(GameObject* parent) {
+        GameObject* go = CreateBasePrimitive("Plane", parent);
+        ComponentMesh* mesh = go->CreateComponent<ComponentMesh>(ComponentType::MESH);
+
+        // Plano de 1x1 en XZ (normal hacia +Y)
+        mesh->vertices = {
+            { -0.5f, 0.0f, -0.5f, 0.0f, 0.0f },
+            { -0.5f, 0.0f,  0.5f, 0.0f, 1.0f },
+            {  0.5f, 0.0f,  0.5f, 1.0f, 1.0f },
+            {  0.5f, 0.0f, -0.5f, 1.0f, 0.0f }
+        };
+        mesh->indices = { 0, 1, 2,   0, 2, 3 };
+
+        mesh->numVertices = (int)mesh->vertices.size();
+        mesh->numIndices = (int)mesh->indices.size();
+        mesh->GenerateBuffers();
+        return go;
+    }
+
+    GameObject* CreateCone(int segments, GameObject* parent) {
+        GameObject* go = CreateBasePrimitive("Cone", parent);
+        ComponentMesh* mesh = go->CreateComponent<ComponentMesh>(ComponentType::MESH);
+
+        const float radius = 0.5f;
+        const float height = 1.0f;
+
+        // Pared lateral: por cada segmento, un vértice de la base y otro en la punta (UVs limpias)
+        for (int i = 0; i <= segments; ++i) {
+            const float theta = (float)i / (float)segments * 2.0f * (float)M_PI;
+            const float u = (float)i / (float)segments;
+            mesh->vertices.push_back({ radius * std::cos(theta), 0.0f, radius * std::sin(theta), u, 0.0f });
+            mesh->vertices.push_back({ 0.0f, height, 0.0f, u, 1.0f });
+        }
+        for (int i = 0; i < segments; ++i) {
+            mesh->indices.push_back(i * 2);
+            mesh->indices.push_back(i * 2 + 1);
+            mesh->indices.push_back((i + 1) * 2);
+        }
+
+        // Tapa de la base (normal hacia -Y)
+        const int center = (int)mesh->vertices.size();
+        mesh->vertices.push_back({ 0.0f, 0.0f, 0.0f, 0.5f, 0.5f });
+        for (int i = 0; i <= segments; ++i) {
+            const float theta = (float)i / (float)segments * 2.0f * (float)M_PI;
+            mesh->vertices.push_back({ radius * std::cos(theta), 0.0f, radius * std::sin(theta),
+                                       0.5f + 0.5f * std::cos(theta), 0.5f + 0.5f * std::sin(theta) });
+        }
+        for (int i = 0; i < segments; ++i) {
+            mesh->indices.push_back(center);
+            mesh->indices.push_back(center + 1 + i);
+            mesh->indices.push_back(center + 2 + i);
+        }
+
+        mesh->numVertices = (int)mesh->vertices.size();
+        mesh->numIndices = (int)mesh->indices.size();
+        mesh->GenerateBuffers();
+        return go;
+    }
 }

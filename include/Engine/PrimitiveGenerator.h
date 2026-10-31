@@ -8,4 +8,6 @@ namespace PrimitiveGenerator {
     GameObject* CreatePyramid(GameObject* parent);
     GameObject* CreateSphere(int segments, int rings, GameObject* parent);
     GameObject* CreateCylinder(int segments, GameObject* parent);
+    GameObject* CreatePlane(GameObject* parent);
+    GameObject* CreateCone(int segments, GameObject* parent);
 }

@@ -47,3 +47,8 @@ update_status ModuleWindow::PreUpdate(float dt) {
     }
     return UPDATE_CONTINUE;
 }
+
+void ModuleWindow::SetFullscreen(bool enable) {
+    fullscreen = enable;
+    SDL_SetWindowFullscreen(window, enable);
+}
