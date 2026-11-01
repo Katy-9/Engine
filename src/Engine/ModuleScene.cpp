@@ -20,7 +20,7 @@ bool ModuleScene::Init() {
     const char* base = SDL_GetBasePath();
     const std::string basePath = base ? base : "";
 
-    App->importer->LoadFBX(basePath + "Assets/baker_house.fbx");
+    App->importer->LoadFBX(basePath + "Assets/Resources/baker_house.fbx");
 
     // La cámara
     GameObject* mainCam = new GameObject("Main Camera", root);

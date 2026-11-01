@@ -32,7 +32,7 @@ static std::string ResolveTexturePath(const std::string& fbxPath, const std::str
         fs::path(texName),                          // tal cual viene en el FBX
         fs::path(fbxPath).parent_path() / file,     // junto al FBX
     };
-    if (base) candidates.push_back(fs::path(base) / "Assets" / file);   // en Assets, junto al .exe
+    if (base) candidates.push_back(fs::path(base) / "Assets" / "Resources" / file);   // en Assets, junto al .exe
 
     for (const fs::path& c : candidates) {
         std::error_code ec;
@@ -97,9 +97,26 @@ GameObject* ModuleImporter::LoadFBX(const std::string& path) {
         if (scene->HasMaterials() && ai_mesh->mMaterialIndex < scene->mNumMaterials) {
             aiString texFile;
             if (scene->mMaterials[ai_mesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE, 0, &texFile) == AI_SUCCESS) {
-                const std::string resolved = ResolveTexturePath(path, texFile.C_Str());
-                if (!resolved.empty()) ApplyTexture(resolved, material);
-                else LOG("Diffuse texture '%s' not found for mesh '%s'", texFile.C_Str(), ai_mesh->mName.C_Str());
+                const aiTexture* embeddedTex = scene->GetEmbeddedTexture(texFile.C_Str());
+
+                if (embeddedTex != nullptr) {
+                    LOG("Embedded texture found: %s", texFile.C_Str());
+                    std::string cacheName = path + "_embedded_" + texFile.C_Str();
+
+                    if (embeddedTex->mHeight == 0) {
+                        ApplyTextureFromMemory(embeddedTex->pcData, embeddedTex->mWidth, cacheName, material);
+                    }
+                    else {
+                        size_t size = embeddedTex->mWidth * embeddedTex->mHeight * 4; 
+                        ApplyTextureFromMemory(embeddedTex->pcData, size, cacheName, material);
+                    }
+                }
+                else {
+                    const std::string resolved = ResolveTexturePath(path, texFile.C_Str());
+                    if (!resolved.empty()) ApplyTexture(resolved, material);
+                    else LOG("Diffuse texture '%s' not found for mesh '%s'", texFile.C_Str(), ai_mesh->mName.C_Str());
+                }
+             
             }
         }
 
@@ -200,4 +217,42 @@ void ModuleImporter::LoadTexture(const std::string& path, GameObject* target) {
         return;
     }
     ApplyTextureRecursive(path, target);
+}
+
+bool ModuleImporter::ApplyTextureFromMemory(const void* buffer, size_t size, const std::string& cacheName, ComponentMaterial* material) {
+    auto it = textureCache.find(cacheName);
+    if (it == textureCache.end()) {
+        unsigned int imageID;
+        ilGenImages(1, &imageID);
+        ilBindImage(imageID);
+
+        if (!ilLoadL(IL_TYPE_UNKNOWN, buffer, size)) {
+            LOG("Failed to load embedded texture (DevIL error 0x%x)", ilGetError());
+            ilDeleteImages(1, &imageID);
+            return false;
+        }
+
+        ilConvertImage(IL_RGBA, IL_UNSIGNED_BYTE);
+        TextureInfo info{ 0, ilGetInteger(IL_IMAGE_WIDTH), ilGetInteger(IL_IMAGE_HEIGHT) };
+
+        glGenTextures(1, &info.id);
+        glBindTexture(GL_TEXTURE_2D, info.id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, info.width, info.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, ilGetData());
+        glGenerateMipmap(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        ilDeleteImages(1, &imageID);
+        LOG("Embedded texture loaded successfully: %s (%dx%d)", cacheName.c_str(), info.width, info.height);
+        it = textureCache.emplace(cacheName, info).first;
+    }
+
+    material->textureID = it->second.id;
+    material->textureWidth = it->second.width;
+    material->textureHeight = it->second.height;
+    material->texturePath = cacheName; 
+    return true;
 }

@@ -22,6 +22,7 @@ public:
 private:
     struct TextureInfo { unsigned int id; int width; int height; };
 
+    bool ApplyTextureFromMemory(const void* buffer, size_t size, const std::string& cacheName, ComponentMaterial* material);
     bool ApplyTexture(const std::string& path, ComponentMaterial* material);
     void ApplyTextureRecursive(const std::string& path, GameObject* go);
 
