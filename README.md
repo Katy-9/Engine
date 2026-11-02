@@ -35,6 +35,7 @@ Motor gráfico 3D desarrollado desde cero como proyecto para la asignatura de Mo
 
 * **Soporte Híbrido de Texturas (Incuidas y Externas):** El importador basado en Assimp es capaz de detectar y descomprimir texturas incrustadas en el modelo FBX
 * **Generación de Figuras Primitivas:** El motor cuenta con un generador de figuras para crear geometrías tridimensionales (esferas, cubos, planos, cilindros, conos y pirámides).
+* **Función de duplicado y delete:** El motor cuenta con os atajos `Ctrl + D` para duplicar y `Supr` para eliminar game objects
 
 ---
 
