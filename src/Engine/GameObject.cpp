@@ -1,5 +1,6 @@
 #include "GameObject.h"
 #include "ComponentMesh.h"
+#include "ComponentMaterial.h"
 #include "ComponentTransform.h"
 #include <cfloat>
 
@@ -59,4 +60,49 @@ bool GameObject::GetWorldAABB(glm::vec3& outMin, glm::vec3& outMax) {
     AccumulateAABB(this, mn, mx, found);
     if (found) { outMin = mn; outMax = mx; }
     return found;
+}
+GameObject* GameObject::Clone(GameObject* newParent) {
+    GameObject* parentToUse = (newParent != nullptr) ? newParent : this->parent;
+    GameObject* clone = new GameObject(this->name + " (Copy)", parentToUse);
+    clone->active = this->active;
+
+    ComponentTransform* srcTrans = GetComponent<ComponentTransform>(ComponentType::TRANSFORM);
+    if (srcTrans != nullptr) {
+        ComponentTransform* dstTrans = clone->CreateComponent<ComponentTransform>(ComponentType::TRANSFORM);
+        dstTrans->position = srcTrans->position + glm::vec3(1.0f, 0.0f, 1.0f);
+        dstTrans->rotation = srcTrans->rotation;
+        dstTrans->eulerRotation = srcTrans->eulerRotation;
+        dstTrans->scale = srcTrans->scale;
+    }
+    ComponentMaterial* srcMat = GetComponent<ComponentMaterial>(ComponentType::MATERIAL);
+    if (srcMat != nullptr) {
+        ComponentMaterial* dstMat = clone->CreateComponent<ComponentMaterial>(ComponentType::MATERIAL);
+        dstMat->texturePath = srcMat->texturePath;
+        dstMat->textureWidth = srcMat->textureWidth;
+        dstMat->textureHeight = srcMat->textureHeight;
+        dstMat->textureID = srcMat->textureID;
+        dstMat->useCheckerTexture = srcMat->useCheckerTexture;
+        for (int i = 0; i < 4; ++i) {
+            dstMat->colorTint[i] = srcMat->colorTint[i];
+        }
+    }
+    ComponentMesh* srcMesh = GetComponent<ComponentMesh>(ComponentType::MESH);
+    if (srcMesh != nullptr) {
+        ComponentMesh* dstMesh = clone->CreateComponent<ComponentMesh>(ComponentType::MESH);
+        dstMesh->vertices = srcMesh->vertices;
+        dstMesh->indices = srcMesh->indices;
+        dstMesh->normals = srcMesh->normals;
+        dstMesh->numVertices = srcMesh->numVertices;
+        dstMesh->numIndices = srcMesh->numIndices;
+        dstMesh->showWireframe = srcMesh->showWireframe;
+        dstMesh->showVertexNormals = srcMesh->showVertexNormals;
+        dstMesh->showFaceNormals = srcMesh->showFaceNormals;
+        dstMesh->GenerateBuffers();
+    }
+
+    for (GameObject* child : this->children) {
+        child->Clone(clone);
+    }
+
+    return clone;
 }

@@ -8,7 +8,7 @@ class GameObject {
 public:
     GameObject(std::string name, GameObject* parent = nullptr);
     ~GameObject();
-
+    GameObject* Clone(GameObject* newParent = nullptr);
     void Update(float dt);
 
     // AABB en coordenadas de mundo de este objeto y todos sus hijos. Devuelve false si no hay ninguna malla.

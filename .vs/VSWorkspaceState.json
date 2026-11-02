@@ -7,6 +7,6 @@
     "\\src\\Editor",
     "\\src\\Engine"
   ],
-  "SelectedNode": "\\src\\Editor\\ModuleEditor.cpp",
+  "SelectedNode": "\\src\\Engine\\GameObject.cpp",
   "PreviewInSolutionExplorer": false
 }

@@ -7,16 +7,23 @@
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\Editor\\ModuleEditor.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\usuari\\Documents\\GitHub\\Engine\\src\\Engine\\GameObject.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\Engine\\GameObject.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Program Files\\Microsoft Visual Studio\\18\\Insiders\\VC\\Tools\\MSVC\\14.52.37025\\include\\vector||{3B902123-F8A7-4915-9F01-361F908088D0}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\usuari\\Documents\\GitHub\\Engine\\include\\Engine\\GameObject.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:include\\Engine\\GameObject.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\usuari\\Documents\\GitHub\\Engine\\src\\Engine\\ModuleScene.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\Engine\\ModuleScene.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\usuari\\Documents\\GitHub\\Engine\\include\\Engine\\ModuleScene.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:include\\Engine\\ModuleScene.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\usuari\\Documents\\GitHub\\Engine\\include\\Engine\\GameObject.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:include\\Engine\\GameObject.h||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\usuari\\Documents\\GitHub\\Engine\\src\\Engine\\ModuleImporter.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
@@ -38,8 +45,34 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 0,
+          "SelectedChildIndex": 2,
           "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "vector",
+              "DocumentMoniker": "C:\\Program Files\\Microsoft Visual Studio\\18\\Insiders\\VC\\Tools\\MSVC\\14.52.37025\\include\\vector",
+              "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\Program Files\\Microsoft Visual Studio\\18\\Insiders\\VC\\Tools\\MSVC\\14.52.37025\\include\\vector",
+              "ToolTip": "C:\\Program Files\\Microsoft Visual Studio\\18\\Insiders\\VC\\Tools\\MSVC\\14.52.37025\\include\\vector",
+              "RelativeToolTip": "..\\..\\..\\..\\..\\Program Files\\Microsoft Visual Studio\\18\\Insiders\\VC\\Tools\\MSVC\\14.52.37025\\include\\vector",
+              "ViewState": "AgIAAGsHAAAAAAAAAAAswHwHAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
+              "WhenOpened": "2026-11-02T08:48:35.053Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "GameObject.cpp",
+              "DocumentMoniker": "C:\\Users\\usuari\\Documents\\GitHub\\Engine\\src\\Engine\\GameObject.cpp",
+              "RelativeDocumentMoniker": "src\\Engine\\GameObject.cpp",
+              "ToolTip": "C:\\Users\\usuari\\Documents\\GitHub\\Engine\\src\\Engine\\GameObject.cpp",
+              "RelativeToolTip": "src\\Engine\\GameObject.cpp",
+              "ViewState": "AgIAADAAAAAAAAAAAAAowEMAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
+              "WhenOpened": "2026-11-02T08:38:26.782Z",
+              "EditorCaption": ""
+            },
             {
               "$type": "Document",
               "DocumentIndex": 0,
@@ -48,14 +81,14 @@
               "RelativeDocumentMoniker": "src\\Editor\\ModuleEditor.cpp",
               "ToolTip": "C:\\Users\\usuari\\Documents\\GitHub\\Engine\\src\\Editor\\ModuleEditor.cpp",
               "RelativeToolTip": "src\\Editor\\ModuleEditor.cpp",
-              "ViewState": "AgIAAMoAAAAAAAAAAAAowNcAAAAjAAAAAAAAAA==",
+              "ViewState": "AgIAAM4AAAAAAAAAAAAmwNYAAAAjAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2026-11-02T08:21:57.819Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 5,
               "Title": "ModuleScene.h",
               "DocumentMoniker": "C:\\Users\\usuari\\Documents\\GitHub\\Engine\\include\\Engine\\ModuleScene.h",
               "RelativeDocumentMoniker": "include\\Engine\\ModuleScene.h",
@@ -63,8 +96,7 @@
               "RelativeToolTip": "include\\Engine\\ModuleScene.h",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAArAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
-              "WhenOpened": "2026-11-02T08:21:02.222Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-11-02T08:21:02.222Z"
             },
             {
               "$type": "Document",
@@ -74,14 +106,14 @@
               "RelativeDocumentMoniker": "include\\Engine\\GameObject.h",
               "ToolTip": "C:\\Users\\usuari\\Documents\\GitHub\\Engine\\include\\Engine\\GameObject.h",
               "RelativeToolTip": "include\\Engine\\GameObject.h",
-              "ViewState": "AgIAACEAAAAAAAAAAAAAAAcAAAAHAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAA3AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000680|",
               "WhenOpened": "2026-11-02T08:18:23.155Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 4,
               "Title": "ModuleScene.cpp",
               "DocumentMoniker": "C:\\Users\\usuari\\Documents\\GitHub\\Engine\\src\\Engine\\ModuleScene.cpp",
               "RelativeDocumentMoniker": "src\\Engine\\ModuleScene.cpp",
@@ -89,12 +121,11 @@
               "RelativeToolTip": "src\\Engine\\ModuleScene.cpp",
               "ViewState": "AgIAACkAAAAAAAAAAAAowCwAAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2026-11-01T16:28:15.903Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-11-01T16:28:15.903Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 6,
               "Title": "ModuleImporter.cpp",
               "DocumentMoniker": "C:\\Users\\usuari\\Documents\\GitHub\\Engine\\src\\Engine\\ModuleImporter.cpp",
               "RelativeDocumentMoniker": "src\\Engine\\ModuleImporter.cpp",
@@ -102,12 +133,11 @@
               "RelativeToolTip": "src\\Engine\\ModuleImporter.cpp",
               "ViewState": "AgIAABUAAAAAAAAAAAAYwCIAAABNAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
-              "WhenOpened": "2026-11-01T15:59:26.578Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-11-01T15:59:26.578Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 7,
               "Title": "ModuleImporter.h",
               "DocumentMoniker": "C:\\Users\\usuari\\Documents\\GitHub\\Engine\\include\\Engine\\ModuleImporter.h",
               "RelativeDocumentMoniker": "include\\Engine\\ModuleImporter.h",
@@ -119,7 +149,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 8,
               "Title": "ModuleInput.h",
               "DocumentMoniker": "C:\\Users\\usuari\\Documents\\GitHub\\Engine\\include\\ModuleInput.h",
               "RelativeDocumentMoniker": "include\\ModuleInput.h",

@@ -95,6 +95,11 @@ update_status ModuleEditor::Update(float dt) {
         if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
             App->scene->DestroyGameObject(App->scene->selected);
         }
+        if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_D)) {
+            GameObject* clonedObj = App->scene->selected->Clone();
+            App->scene->selected = clonedObj;
+            LOG("GameObject duplicated: %s", clonedObj->name.c_str());
+        }
     }
     return ret;
 }
@@ -192,6 +197,7 @@ void ModuleEditor::DrawHierarchy() {
         DrawHierarchyNode(App->scene->GetRoot());
     }
     ImGui::End();
+
 }
 
 void ModuleEditor::DrawHierarchyNode(GameObject* go) {
@@ -204,13 +210,6 @@ void ModuleEditor::DrawHierarchyNode(GameObject* go) {
         App->scene->selected = go;
     }
 
-    if (nodeOpen && !go->children.empty()) {
-        for (GameObject* child : go->children) {
-            DrawHierarchyNode(child);
-        }
-        ImGui::TreePop();
-    }
-
     //delete
     if (ImGui::BeginPopupContextItem()) {
         App->scene->selected = go; 
@@ -218,6 +217,12 @@ void ModuleEditor::DrawHierarchyNode(GameObject* go) {
             App->scene->DestroyGameObject(go);
         }
         ImGui::EndPopup();
+    }
+    if (nodeOpen && !go->children.empty()) {
+        for (GameObject* child : go->children) {
+            DrawHierarchyNode(child);
+        }
+        ImGui::TreePop();
     }
 }
 
