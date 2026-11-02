@@ -15,6 +15,13 @@ public:
     update_status PostUpdate(float dt) override;
     bool CleanUp() override;
 
+    void CreateFramebuffer(int width, int height);
+    unsigned int sceneFBO = 0;
+    unsigned int sceneTexture = 0;
+    unsigned int sceneRBO = 0;
+    int renderWidth = 1280;
+    int renderHeight = 720;
+
 public:
     SDL_GLContext context = nullptr;
     unsigned int defaultShaderProgram = 0;

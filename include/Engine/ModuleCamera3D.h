@@ -5,6 +5,8 @@
 
 class ModuleCamera3D : public Module {
 public:
+    void SetAspectRatio(float aspect) { aspectRatio = aspect; }
+    float aspectRatio = 1.777f;
     ModuleCamera3D(Application* app);
     virtual ~ModuleCamera3D();
 
@@ -29,7 +31,7 @@ public:
     float baseSpeed = 20.0f;
     float turnSpeed = 0.2f;
     float fov = 60.0f;
-
+    bool isViewportHovered = false;
 private:
     void UpdateVectors();
     void Orbit(float dx, float dy, bool start);

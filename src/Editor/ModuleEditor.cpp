@@ -50,9 +50,8 @@ static void PlaceWindow(float x, float y, float w, float h) {
     const float top = ImGui::GetFrameHeight();
     const float areaW = vp->Size.x;
     const float areaH = vp->Size.y - top;
-
-    ImGui::SetNextWindowPos(ImVec2(vp->Pos.x + x * areaW, vp->Pos.y + top + y * areaH), ImGuiCond_Always);
-    ImGui::SetNextWindowSize(ImVec2(w * areaW, h * areaH), ImGuiCond_Always);
+    ImGui::SetNextWindowPos(ImVec2(vp->Pos.x + x * areaW, vp->Pos.y + top + y * areaH), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(w * areaW, h * areaH), ImGuiCond_FirstUseEver);
 }
 
 ModuleEditor::ModuleEditor(Application* app) : Module(app) {}
@@ -85,7 +84,7 @@ update_status ModuleEditor::PreUpdate(float dt) {
 
 update_status ModuleEditor::Update(float dt) {
     update_status ret = DrawMainMenuBar();
-
+    DrawSceneWindow();
     if (showConsole) DrawConsole();
     if (showHierarchy) DrawHierarchy();
     if (showInspector) DrawInspector();
@@ -103,6 +102,7 @@ update_status ModuleEditor::Update(float dt) {
     }
     return ret;
 }
+
 
 update_status ModuleEditor::PostUpdate(float dt) {
     ImGui::Render();
@@ -142,6 +142,7 @@ update_status ModuleEditor::DrawMainMenuBar() {
         }
 
         if (ImGui::BeginMenu("View")) {
+            ImGui::MenuItem("Scene Viewport", nullptr, &showSceneWindow);
             ImGui::MenuItem("Hierarchy", nullptr, &showHierarchy);
             ImGui::MenuItem("Inspector", nullptr, &showInspector);
             ImGui::MenuItem("Console", nullptr, &showConsole);
@@ -163,6 +164,35 @@ update_status ModuleEditor::DrawMainMenuBar() {
     return ret;
 }
 
+void ModuleEditor::DrawSceneWindow() {
+    PlaceWindow(0.20f, 0.00f, 0.55f, 0.70f);
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::Begin("Scene Viewport", &showSceneWindow);
+
+    App->camera->isViewportHovered = ImGui::IsWindowHovered();
+
+    ImVec2 viewportSize = ImGui::GetContentRegionAvail();
+
+    if (viewportSize.x > 0 && viewportSize.y > 0) {
+        if (viewportSize.x != App->renderer3D->renderWidth || viewportSize.y != App->renderer3D->renderHeight) {
+            App->renderer3D->CreateFramebuffer((int)viewportSize.x, (int)viewportSize.y);
+            App->camera->SetAspectRatio(viewportSize.x / viewportSize.y);
+        }
+    }
+
+    if (App->renderer3D->sceneTexture != 0) {
+        ImGui::Image(
+            (ImTextureID)(intptr_t)App->renderer3D->sceneTexture,
+            viewportSize,
+            ImVec2(0, 1), 
+            ImVec2(1, 0)
+        );
+    }
+
+    ImGui::End();
+    ImGui::PopStyleVar();
+}
 void ModuleEditor::DrawAboutWindow() {
     ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
     ImGui::Begin("About Kuroko Engine", &showAboutWindow, ImGuiWindowFlags_AlwaysAutoResize);
@@ -211,7 +241,6 @@ void ModuleEditor::DrawHierarchy() {
 
     ImGui::End();
 
-    // --- ACCIONES DIFERIDAS ---
     if (objectToDuplicate != nullptr) {
         GameObject* clonedObj = objectToDuplicate->Clone();
         App->scene->selected = clonedObj;

@@ -22,6 +22,7 @@ private:
     void DrawAboutWindow();
     void DrawConfiguration();
     void DrawInspector();
+    void DrawSceneWindow();
 
 private:
     bool showAboutWindow = false;
@@ -29,4 +30,5 @@ private:
     bool showHierarchy = true;
     bool showInspector = true;
     bool showConsole = true;
+    bool showSceneWindow = true;
 };

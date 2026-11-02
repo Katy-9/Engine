@@ -6,6 +6,7 @@
 #include "ComponentMesh.h"
 #include "ComponentMaterial.h"
 #include "Log.h"
+#include "ModuleCamera3D.h"
 #include <string>
 #include <SDL3/SDL.h>
 
@@ -20,12 +21,15 @@ bool ModuleScene::Init() {
     const char* base = SDL_GetBasePath();
     const std::string basePath = base ? base : "";
 
-    App->importer->LoadFBX(basePath + "Assets/Resources/baker_house.fbx");
+    GameObject* house = App->importer->LoadFBX(basePath + "Assets/Resources/baker_house.fbx");
 
     // La cámara
-    GameObject* mainCam = new GameObject("Main Camera", root);
-    mainCam->CreateComponent<ComponentTransform>(ComponentType::TRANSFORM);
+    if (house != nullptr) {
+        selected = house;
 
+        App->camera->Reference = glm::vec3(0.0f, 0.0f, 0.0f);
+        App->camera->Position = glm::vec3(0.0f, 10.0f, 30.0f);
+    }
     return true;
 }
 

@@ -33,7 +33,7 @@ update_status ModuleCamera3D::Update(float dt) {
 
     const float boost = (keys[SDL_SCANCODE_LSHIFT] || keys[SDL_SCANCODE_RSHIFT]) ? 2.0f : 1.0f;
     const float moveSpeed = baseSpeed * boost * dt;
-    const bool mouseFree = !App->input->uiCapturesMouse;
+    const bool mouseFree = isViewportHovered || rightClick;
 
     const bool orbiting = alt && leftClick && mouseFree;
 
@@ -124,6 +124,5 @@ glm::mat4 ModuleCamera3D::GetViewMatrix() const {
 }
 
 glm::mat4 ModuleCamera3D::GetProjectionMatrix() const {
-    const float aspect = App->window->height > 0 ? (float)App->window->width / (float)App->window->height : 1.0f;
-    return glm::perspective(glm::radians(fov), aspect, 0.1f, 10000.0f);
+    return glm::perspective(glm::radians(fov), aspectRatio, 0.1f, 10000.0f);
 }

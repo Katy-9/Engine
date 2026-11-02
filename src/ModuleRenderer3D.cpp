@@ -103,8 +103,34 @@ bool ModuleRenderer3D::Init() {
     SetVSync(vsync);
 
     CreateDebugResources();
-
+    CreateFramebuffer(App->window->width, App->window->height);
     return true;
+}
+void ModuleRenderer3D::CreateFramebuffer(int width, int height) {
+    if (width <= 0 || height <= 0) return;
+    renderWidth = width;
+    renderHeight = height;
+
+    if (sceneFBO != 0) glDeleteFramebuffers(1, &sceneFBO);
+    if (sceneTexture != 0) glDeleteTextures(1, &sceneTexture);
+    if (sceneRBO != 0) glDeleteRenderbuffers(1, &sceneRBO);
+
+    glGenFramebuffers(1, &sceneFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, sceneFBO);
+
+    glGenTextures(1, &sceneTexture);
+    glBindTexture(GL_TEXTURE_2D, sceneTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, renderWidth, renderHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sceneTexture, 0);
+
+    glGenRenderbuffers(1, &sceneRBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, sceneRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, renderWidth, renderHeight);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH24_STENCIL8, GL_RENDERBUFFER, sceneRBO);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void DrawGameObject(GameObject* go, unsigned int shader, bool wireframe) {
@@ -266,7 +292,8 @@ void ModuleRenderer3D::DrawAABBs(GameObject* go) const {
 }
 
 update_status ModuleRenderer3D::PreUpdate(float dt) {
-    glViewport(0, 0, App->window->width, App->window->height);
+    glBindFramebuffer(GL_FRAMEBUFFER, sceneFBO);
+    glViewport(0, 0, renderWidth, renderHeight);
     glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     return UPDATE_CONTINUE;
@@ -305,10 +332,17 @@ update_status ModuleRenderer3D::PostUpdate(float dt) {
 
     glBindVertexArray(0);
     glUseProgram(0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, App->window->width, App->window->height);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     return UPDATE_CONTINUE;
 }
 
 bool ModuleRenderer3D::CleanUp() {
+    if (sceneFBO != 0) glDeleteFramebuffers(1, &sceneFBO);
+    if (sceneTexture != 0) glDeleteTextures(1, &sceneTexture);
+    if (sceneRBO != 0) glDeleteRenderbuffers(1, &sceneRBO);
     glDeleteProgram(defaultShaderProgram);
     glDeleteProgram(debugProgram);
     glDeleteVertexArrays(1, &gridVAO);
