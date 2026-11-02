@@ -151,7 +151,7 @@ update_status ModuleEditor::DrawMainMenuBar() {
         }
 
         if (ImGui::BeginMenu("Help")) {
-            if (ImGui::MenuItem("GitHub Documentation")) SDL_OpenURL((REPO_URL + "/docs").c_str());
+            if (ImGui::MenuItem("GitHub Documentation")) SDL_OpenURL((REPO_URL).c_str());
             if (ImGui::MenuItem("Report a bug")) SDL_OpenURL((REPO_URL + "/issues").c_str());
             if (ImGui::MenuItem("Download latest")) SDL_OpenURL((REPO_URL + "/releases").c_str());
             ImGui::Separator();
@@ -189,6 +189,8 @@ void ModuleEditor::DrawAboutWindow() {
     ImGui::Text("Licencia MIT");
     ImGui::End();
 }
+static GameObject* objectToDuplicate = nullptr;
+static GameObject* objectToDelete = nullptr;
 
 void ModuleEditor::DrawHierarchy() {
     PlaceWindow(0.00f, 0.00f, 0.20f, 0.70f);
@@ -196,8 +198,31 @@ void ModuleEditor::DrawHierarchy() {
     if (App->scene != nullptr && App->scene->GetRoot() != nullptr) {
         DrawHierarchyNode(App->scene->GetRoot());
     }
+    ImGui::Dummy(ImGui::GetContentRegionAvail());
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GAMEOBJECT_NODE")) {
+            GameObject* draggedObj = *(GameObject**)payload->Data;
+            if (draggedObj != nullptr && App->scene != nullptr) {
+                draggedObj->SetParent(App->scene->GetRoot());
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+
     ImGui::End();
 
+    // --- ACCIONES DIFERIDAS ---
+    if (objectToDuplicate != nullptr) {
+        GameObject* clonedObj = objectToDuplicate->Clone();
+        App->scene->selected = clonedObj;
+        LOG("GameObject duplicated: %s", clonedObj->name.c_str());
+        objectToDuplicate = nullptr;
+    }
+
+    if (objectToDelete != nullptr) {
+        App->scene->DestroyGameObject(objectToDelete);
+        objectToDelete = nullptr;
+    }
 }
 
 void ModuleEditor::DrawHierarchyNode(GameObject* go) {
@@ -209,7 +234,25 @@ void ModuleEditor::DrawHierarchyNode(GameObject* go) {
     if (ImGui::IsItemClicked()) {
         App->scene->selected = go;
     }
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+        App->scene->selected = go;
+    }
 
+    if (ImGui::BeginDragDropSource()) {
+        ImGui::SetDragDropPayload("GAMEOBJECT_NODE", &go, sizeof(GameObject*));
+        ImGui::Text("Mover %s", go->name.c_str());
+        ImGui::EndDragDropSource();
+    }
+
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GAMEOBJECT_NODE")) {
+            GameObject* draggedObj = *(GameObject**)payload->Data;
+            if (draggedObj != nullptr) {
+                draggedObj->SetParent(go); // Asignamos el nuevo padre
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
     //delete
     if (ImGui::BeginPopupContextItem()) {
         App->scene->selected = go; 

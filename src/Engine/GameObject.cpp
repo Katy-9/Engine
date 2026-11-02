@@ -106,3 +106,26 @@ GameObject* GameObject::Clone(GameObject* newParent) {
 
     return clone;
 }
+void GameObject::SetParent(GameObject* newParent) {
+
+    if (newParent == parent) return; 
+    if (newParent == this) return; 
+    for (GameObject* p = newParent; p != nullptr; p = p->parent) {
+        if (p == this) return;
+    }
+
+    if (parent != nullptr) {
+        auto& pChildren = parent->children;
+        for (auto it = pChildren.begin(); it != pChildren.end(); ++it) {
+            if (*it == this) {
+                pChildren.erase(it);
+                break;
+            }
+        }
+    }
+
+    parent = newParent;
+    if (parent != nullptr) {
+        parent->children.push_back(this);
+    }
+}

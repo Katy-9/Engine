@@ -10,7 +10,7 @@ public:
     ~GameObject();
     GameObject* Clone(GameObject* newParent = nullptr);
     void Update(float dt);
-
+    void SetParent(GameObject* newParent);
     // AABB en coordenadas de mundo de este objeto y todos sus hijos. Devuelve false si no hay ninguna malla.
     bool GetWorldAABB(glm::vec3& outMin, glm::vec3& outMax);
 
