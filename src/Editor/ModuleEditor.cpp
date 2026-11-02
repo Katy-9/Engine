@@ -260,6 +260,10 @@ void ModuleEditor::DrawHierarchyNode(GameObject* go) {
     if (go->children.empty()) flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 
     bool nodeOpen = ImGui::TreeNodeEx(go, flags, "%s", go->name.c_str());
+    if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+        renamingObject = go;
+        snprintf(renameBuffer, sizeof(renameBuffer), "%s", go->name.c_str());
+    }
     if (ImGui::IsItemClicked()) {
         App->scene->selected = go;
     }
@@ -295,6 +299,21 @@ void ModuleEditor::DrawHierarchyNode(GameObject* go) {
             DrawHierarchyNode(child);
         }
         ImGui::TreePop();
+    }
+    if (renamingObject == go) {
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 10.0f);
+        if (ImGui::InputText("##RenameInput", renameBuffer, sizeof(renameBuffer), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll)) {
+            if (strlen(renameBuffer) > 0) {
+                go->name = renameBuffer;
+            }
+            renamingObject = nullptr;
+        }
+
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+            renamingObject = nullptr;
+        }
+
+        return; 
     }
 }
 

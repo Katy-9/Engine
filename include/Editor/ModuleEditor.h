@@ -19,6 +19,8 @@ private:
     void DrawConsole();
     void DrawHierarchy();
     void DrawHierarchyNode(GameObject* go);
+    GameObject* renamingObject = nullptr;
+    char renameBuffer[128] = "";
     void DrawAboutWindow();
     void DrawConfiguration();
     void DrawInspector();
