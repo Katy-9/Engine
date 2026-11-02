@@ -37,6 +37,7 @@ Motor gráfico 3D desarrollado desde cero como proyecto para la asignatura de Mo
 * **Generación de Figuras Primitivas:** El motor cuenta con un generador de figuras para crear geometrías tridimensionales (esferas, cubos, planos, cilindros, conos y pirámides).
 * **Función de duplicado y delete:** El motor cuenta con os atajos `Ctrl + D` para duplicar y `Supr` para eliminar game objects
 * **Wireframe:** En las opciones del mesh aparte de las normales se puede ver también el wireframe del objeto 3D
+* **Rename objects:** Haciendo doble click en cualquier objeto de la hierarchy te sale un cuadradito donde puedes renombrar el objeto
 ---
 
 ## 💡 Comentarios Adicionales para el Profesor
