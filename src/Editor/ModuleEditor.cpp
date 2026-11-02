@@ -91,7 +91,11 @@ update_status ModuleEditor::Update(float dt) {
     if (showInspector) DrawInspector();
     if (showAboutWindow) DrawAboutWindow();
     if (showConfigurationWindow) DrawConfiguration();
-
+    if (App->scene->selected != nullptr && !ImGui::GetIO().WantTextInput) {
+        if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
+            App->scene->DestroyGameObject(App->scene->selected);
+        }
+    }
     return ret;
 }
 
@@ -205,6 +209,15 @@ void ModuleEditor::DrawHierarchyNode(GameObject* go) {
             DrawHierarchyNode(child);
         }
         ImGui::TreePop();
+    }
+
+    //delete
+    if (ImGui::BeginPopupContextItem()) {
+        App->scene->selected = go; 
+        if (ImGui::MenuItem("Delete")) {
+            App->scene->DestroyGameObject(go);
+        }
+        ImGui::EndPopup();
     }
 }
 

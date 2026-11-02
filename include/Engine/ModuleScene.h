@@ -13,7 +13,7 @@ public:
     bool CleanUp() override;
 
     GameObject* GetRoot() const { return root; }
-
+    void DestroyGameObject(GameObject* go);
     GameObject* selected = nullptr;
 
 private:

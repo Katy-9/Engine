@@ -1,14 +1,12 @@
 {
   "ExpandedNodes": [
     "",
-    "\\build",
-    "\\build\\Debug",
     "\\include",
     "\\include\\Engine",
     "\\src",
     "\\src\\Editor",
     "\\src\\Engine"
   ],
-  "SelectedNode": "\\build\\KurokoEngine.slnx",
+  "SelectedNode": "\\src\\Editor\\ModuleEditor.cpp",
   "PreviewInSolutionExplorer": false
 }

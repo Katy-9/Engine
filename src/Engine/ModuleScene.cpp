@@ -43,3 +43,22 @@ bool ModuleScene::CleanUp() {
     }
     return true;
 }
+
+void ModuleScene::DestroyGameObject(GameObject* go) {
+    if (go == nullptr || go == root) return; 
+    if (selected == go) {
+        selected = nullptr;
+    }
+
+    if (go->parent != nullptr) {
+        auto& children = go->parent->children;
+        for (auto it = children.begin(); it != children.end(); ++it) {
+            if (*it == go) {
+                children.erase(it);
+                break;
+            }
+        }
+    }
+
+    delete go;
+}
