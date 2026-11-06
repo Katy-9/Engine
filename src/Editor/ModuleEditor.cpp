@@ -44,6 +44,25 @@ static const char* ENGINE_VERSION = "0.1";
 static ImGuizmo::OPERATION mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
 static ImGuizmo::MODE mCurrentGizmoMode = ImGuizmo::LOCAL;
 
+// --- HISTORIAL DE UNDO (CTRL + Z) ---
+struct UndoState {
+    GameObject* go;
+    glm::vec3 pos;
+    glm::vec3 euler;
+    glm::quat rot;
+    glm::vec3 scale;
+};
+static std::vector<UndoState> g_UndoStack;
+static bool g_WasUsingGizmo = false;
+
+static void PushUndo(GameObject* go) {
+    if (!go) return;
+    ComponentTransform* t = go->GetComponent<ComponentTransform>(ComponentType::TRANSFORM);
+    if (!t) return;
+    if (g_UndoStack.size() > 50) g_UndoStack.erase(g_UndoStack.begin());
+    g_UndoStack.push_back({ go, t->position, t->eulerRotation, t->rotation, t->scale });
+}
+
 struct TeamMember { const char* name; const char* github; };
 static const TeamMember TEAM[] = {
     { "Queralt Escutia", "Keral06" },
@@ -103,19 +122,46 @@ update_status ModuleEditor::Update(float dt) {
     if (showInspector) DrawInspector();
     if (showAboutWindow) DrawAboutWindow();
     if (showConfigurationWindow) DrawConfiguration();
-    if (App->scene->selected != nullptr && !ImGui::GetIO().WantTextInput) {
-        if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
-            App->scene->DestroyGameObject(App->scene->selected);
+
+    if (!ImGui::GetIO().WantTextInput) {
+        // CTRL + Z (Deshacer última transformación y limpiar línea de debug)
+        if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z) && !g_UndoStack.empty()) {
+            UndoState last = g_UndoStack.back();
+            g_UndoStack.pop_back();
+            ComponentTransform* t = last.go->GetComponent<ComponentTransform>(ComponentType::TRANSFORM);
+            if (t) {
+                t->position = last.pos;
+                t->eulerRotation = last.euler;
+                t->rotation = last.rot;
+                t->scale = last.scale;
+                App->scene->selected = last.go;
+                App->renderer3D->hasLastRay = false; // <--- BORRA LA LÍNEA DE DEBUG AL HACER CTRL+Z
+                LOG("Undo applied to: %s", last.go->name.c_str());
+            }
         }
-        if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_D)) {
-            GameObject* clonedObj = App->scene->selected->Clone();
-            App->scene->selected = clonedObj;
-            LOG("GameObject duplicated: %s", clonedObj->name.c_str());
+
+        if (App->scene->selected != nullptr) {
+            // F2: Renombrar el objeto seleccionado
+            if (ImGui::IsKeyPressed(ImGuiKey_F2)) {
+                renamingObject = App->scene->selected;
+                snprintf(renameBuffer, sizeof(renameBuffer), "%s", renamingObject->name.c_str());
+            }
+            // SUPR: Borrar
+            if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
+                if (g_UndoStack.size() > 0) g_UndoStack.clear();
+                App->renderer3D->hasLastRay = false; // <--- También la borramos si eliminas el objeto
+                App->scene->DestroyGameObject(App->scene->selected);
+            }
+            // CTRL + D: Duplicar
+            if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_D)) {
+                GameObject* clonedObj = App->scene->selected->Clone();
+                App->scene->selected = clonedObj;
+                LOG("GameObject duplicated: %s", clonedObj->name.c_str());
+            }
         }
     }
     return ret;
 }
-
 
 update_status ModuleEditor::PostUpdate(float dt) {
     ImGui::Render();
@@ -140,6 +186,14 @@ update_status ModuleEditor::DrawMainMenuBar() {
         }
 
         if (ImGui::BeginMenu("GameObject")) {
+            if (ImGui::MenuItem("Create Empty")) {
+                GameObject* empty = new GameObject("Empty GameObject", App->scene->GetRoot());
+                empty->CreateComponent<ComponentTransform>(ComponentType::TRANSFORM);
+                App->scene->selected = empty;
+            }
+
+			ImGui::Separator();
+
             if (ImGui::BeginMenu("3D Object")) {
                 GameObject* root = App->scene->GetRoot();
                 if (ImGui::MenuItem("Cube"))     App->scene->selected = PrimitiveGenerator::CreateCube(root);
@@ -197,8 +251,12 @@ void ModuleEditor::DrawSceneWindow() {
         ImGui::Image((ImTextureID)(intptr_t)App->renderer3D->sceneTexture, viewportSize, ImVec2(0, 1), ImVec2(1, 0));
     }
 
+    // 1. DIBUJAR Y ACTUALIZAR EL GIZMO + CUBO DE VISTAS
     ImGuizmo::SetDrawlist();
     ImGuizmo::SetRect(windowPos.x, windowPos.y, viewportSize.x, viewportSize.y);
+
+    glm::mat4 viewMat = App->camera->GetViewMatrix();
+    glm::mat4 projMat = App->camera->GetProjectionMatrix();
 
     if (App->scene->selected != nullptr) {
         ComponentTransform* transform = App->scene->selected->GetComponent<ComponentTransform>(ComponentType::TRANSFORM);
@@ -210,22 +268,58 @@ void ModuleEditor::DrawSceneWindow() {
                 if (ImGui::IsKeyPressed(ImGuiKey_R)) mCurrentGizmoOperation = ImGuizmo::SCALE;
             }
 
-            glm::mat4 viewMat = App->camera->GetViewMatrix();
-            glm::mat4 projMat = App->camera->GetProjectionMatrix();
             glm::mat4 globalMat = transform->GetGlobalMatrix();
 
+            // Si mantienes pulsado CTRL, hace "Snap" (va a saltos exactos de 1 unidad o 15 grados)
+            bool useSnap = ImGui::GetIO().KeyCtrl;
+            float snapValues[3] = { 1.0f, 1.0f, 1.0f };
+            if (mCurrentGizmoOperation == ImGuizmo::ROTATE) snapValues[0] = snapValues[1] = snapValues[2] = 15.0f;
+            else if (mCurrentGizmoOperation == ImGuizmo::SCALE) snapValues[0] = snapValues[1] = snapValues[2] = 0.5f;
+
             ImGuizmo::Manipulate(glm::value_ptr(viewMat), glm::value_ptr(projMat),
-                mCurrentGizmoOperation, mCurrentGizmoMode, glm::value_ptr(globalMat));
+                mCurrentGizmoOperation, mCurrentGizmoMode, glm::value_ptr(globalMat),
+                nullptr, useSnap ? snapValues : nullptr);
 
             if (ImGuizmo::IsUsing()) {
+                // Justo en el primer frame en que agarramos la flecha del Gizmo, guardamos foto para Ctrl+Z
+                if (!g_WasUsingGizmo) {
+                    PushUndo(App->scene->selected);
+                }
                 transform->SetGlobalMatrix(globalMat);
             }
+            g_WasUsingGizmo = ImGuizmo::IsUsing();
         }
     }
 
+    // --- CUBO INTERACTIVO 3D ARRIBA A LA DERECHA (ViewManipulate) ---
+    ImVec2 viewManipulatePos = ImVec2(windowPos.x + viewportSize.x - 110.0f, windowPos.y + 10.0f);
+    glm::mat4 oldView = viewMat;
+    ImGuizmo::ViewManipulate(glm::value_ptr(viewMat), 10.0f, viewManipulatePos, ImVec2(100.0f, 100.0f), 0x10101010);
+    if (viewMat != oldView) {
+        // Si el usuario ha girado el cubo de la esquina, actualizamos la cámara
+        glm::mat4 invView = glm::inverse(viewMat);
+        App->camera->Position = glm::vec3(invView[3]);
+        glm::vec3 front = -glm::normalize(glm::vec3(invView[2]));
+        App->camera->pitch = glm::degrees(std::asin(glm::clamp(front.y, -1.0f, 1.0f)));
+        App->camera->yaw = glm::degrees(std::atan2(front.z, front.x));
+    }
+
+    // --- BARRA DE HERRAMIENTAS FLOTANTE ARRIBA A LA IZQUIERDA ---
+    ImGui::SetCursorScreenPos(ImVec2(windowPos.x + 10.0f, windowPos.y + 10.0f));
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.15f, 0.15f, 0.85f));
+    if (ImGui::Button("Move (W)"))   mCurrentGizmoOperation = ImGuizmo::TRANSLATE; ImGui::SameLine();
+    if (ImGui::Button("Rotate (E)")) mCurrentGizmoOperation = ImGuizmo::ROTATE;    ImGui::SameLine();
+    if (ImGui::Button("Scale (R)"))  mCurrentGizmoOperation = ImGuizmo::SCALE;     ImGui::SameLine();
+    if (ImGui::Button(mCurrentGizmoMode == ImGuizmo::LOCAL ? "Mode: Local" : "Mode: World")) {
+        mCurrentGizmoMode = (mCurrentGizmoMode == ImGuizmo::LOCAL) ? ImGuizmo::WORLD : ImGuizmo::LOCAL;
+    }
+    ImGui::PopStyleColor();
+    bool isToolbarHovered = ImGui::IsItemHovered() || ImGui::IsAnyItemActive();
+
     App->camera->isUsingGizmo = ImGuizmo::IsUsing();
 
-    if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGuizmo::IsOver() && !ImGuizmo::IsUsing()) {
+    // 2. MOUSE PICKING (Solo si no tocamos el Gizmo ni la barra de botones)
+    if (ImGui::IsWindowHovered() && !isToolbarHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGuizmo::IsOver() && !ImGuizmo::IsUsing()) {
 
         ImVec2 mousePos = ImGui::GetMousePos();
         float mouseX = mousePos.x - windowPos.x;
@@ -235,6 +329,11 @@ void ModuleEditor::DrawSceneWindow() {
 
             glm::vec3 rayDir = App->camera->ScreenToWorldRay(mouseX, mouseY, viewportSize.x, viewportSize.y);
             glm::vec3 rayOrigin = App->camera->Position;
+
+            // Guardamos el rayo para dibujarlo en 3D (Debug Raycast)
+            App->renderer3D->lastRayOrigin = rayOrigin;
+            App->renderer3D->lastRayEnd = rayOrigin + rayDir * 500.0f;
+            App->renderer3D->hasLastRay = true;
 
             GameObject* closestObj = nullptr;
             float closestDist = FLT_MAX;
@@ -294,8 +393,10 @@ void ModuleEditor::DrawAboutWindow() {
     ImGui::Text("Licencia MIT");
     ImGui::End();
 }
+
 static GameObject* objectToDuplicate = nullptr;
 static GameObject* objectToDelete = nullptr;
+static GameObject* objectToAddChild = nullptr;
 
 void ModuleEditor::DrawHierarchy() {
     PlaceWindow(0.00f, 0.00f, 0.20f, 0.70f);
@@ -319,8 +420,14 @@ void ModuleEditor::DrawHierarchy() {
 
     ImGui::End();
 
-    // Procesar las peticiones pendientes (Duplicar o Borrar) de forma segura 
-    // después de haber dibujado todo el árbol.
+    if (objectToAddChild != nullptr) {
+        GameObject* child = new GameObject("Empty Child", objectToAddChild);
+        child->CreateComponent<ComponentTransform>(ComponentType::TRANSFORM);
+        App->scene->selected = child;
+        LOG("Created Empty Child inside: %s", objectToAddChild->name.c_str());
+        objectToAddChild = nullptr;
+    }
+
     if (objectToDuplicate != nullptr) {
         GameObject* clonedObj = objectToDuplicate->Clone();
         App->scene->selected = clonedObj;
@@ -335,16 +442,14 @@ void ModuleEditor::DrawHierarchy() {
 }
 
 void ModuleEditor::DrawHierarchyNode(GameObject* go) {
-    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow;
 
-    // Resaltado de selección
     if (App->scene->selected == go) flags |= ImGuiTreeNodeFlags_Selected;
 
-    // Si no tenemos hijos, nos dibujamos como una "hoja" final
-    if (go->children.empty()) flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+    const bool isLeaf = go->children.empty();
+    if (isLeaf) flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 
-    // --- AUTO EXPANDIR CARPETA SI UN HIJO ESTÁ SELECCIONADO ---
-    if (App->scene->selected != nullptr && App->scene->selected != go) {
+    if (!isLeaf && App->scene->selected != nullptr && App->scene->selected != go) {
         GameObject* parentWalker = App->scene->selected->parent;
         while (parentWalker != nullptr) {
             if (parentWalker == go) {
@@ -355,10 +460,9 @@ void ModuleEditor::DrawHierarchyNode(GameObject* go) {
         }
     }
 
-    // Dibujamos el nodo en sí
     bool nodeOpen = ImGui::TreeNodeEx(go, flags, "%s", go->name.c_str());
 
-    // Eventos de ratón
+    // Doble clic para renombrar
     if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
         renamingObject = go;
         snprintf(renameBuffer, sizeof(renameBuffer), "%s", go->name.c_str());
@@ -367,14 +471,12 @@ void ModuleEditor::DrawHierarchyNode(GameObject* go) {
         App->scene->selected = go;
     }
 
-    // Drag & Drop: Coger (Source)
     if (ImGui::BeginDragDropSource()) {
         ImGui::SetDragDropPayload("GAMEOBJECT_NODE", &go, sizeof(GameObject*));
         ImGui::Text("Mover %s", go->name.c_str());
         ImGui::EndDragDropSource();
     }
 
-    // Drag & Drop: Soltar (Target)
     if (ImGui::BeginDragDropTarget()) {
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("GAMEOBJECT_NODE")) {
             GameObject* draggedObj = *(GameObject**)payload->Data;
@@ -385,28 +487,44 @@ void ModuleEditor::DrawHierarchyNode(GameObject* go) {
         ImGui::EndDragDropTarget();
     }
 
-    // Click Derecho -> PopUp Menú
+    // Click Derecho -> PopUp Menú Completo
     if (ImGui::BeginPopupContextItem()) {
         App->scene->selected = go;
-        if (ImGui::MenuItem("Duplicate")) {
+        if (ImGui::MenuItem("Create Empty Child")) {
+            objectToAddChild = go;
+        }
+        if (ImGui::MenuItem("Rename", "F2")) {
+            renamingObject = go;
+            snprintf(renameBuffer, sizeof(renameBuffer), "%s", go->name.c_str());
+        }
+        if (ImGui::MenuItem("Duplicate", "Ctrl+D")) {
             objectToDuplicate = go;
         }
-        if (ImGui::MenuItem("Delete")) {
+        if (ImGui::MenuItem("Delete", "Del")) {
             objectToDelete = go;
+        }
+
+        // Mover Arriba / Abajo en la lista de hijos (Pág. 132 de teoría)
+        if (go->parent != nullptr) {
+            ImGui::Separator();
+            auto& siblings = go->parent->children;
+            auto it = std::find(siblings.begin(), siblings.end(), go);
+            if (it != siblings.end()) {
+                size_t idx = std::distance(siblings.begin(), it);
+                if (ImGui::MenuItem("Move Up", nullptr, false, idx > 0)) {
+                    std::swap(siblings[idx], siblings[idx - 1]);
+                }
+                if (ImGui::MenuItem("Move Down", nullptr, false, idx + 1 < siblings.size())) {
+                    std::swap(siblings[idx], siblings[idx + 1]);
+                }
+            }
         }
         ImGui::EndPopup();
     }
 
-    // Dibujar hijos recursivamente si la carpeta está abierta
-    if (nodeOpen && !go->children.empty()) {
-        for (GameObject* child : go->children) {
-            DrawHierarchyNode(child);
-        }
-        ImGui::TreePop();
-    }
-
-    // Cajetín de Input de Texto si estamos renombrando este objeto
+    // Cajetín de Input de Texto JUSTO DEBAJO del nodo (antes de los hijos)
     if (renamingObject == go) {
+        ImGui::SetKeyboardFocusHere();
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 10.0f);
         if (ImGui::InputText("##RenameInput", renameBuffer, sizeof(renameBuffer), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll)) {
             if (strlen(renameBuffer) > 0) {
@@ -414,11 +532,16 @@ void ModuleEditor::DrawHierarchyNode(GameObject* go) {
             }
             renamingObject = nullptr;
         }
-
-        // Si el usuario clica fuera o pulsa ESC, cancelamos
-        if (ImGui::IsKeyPressed(ImGuiKey_Escape) || (!ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))) {
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape) || (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsItemHovered())) {
             renamingObject = nullptr;
         }
+    }
+
+    if (nodeOpen && !isLeaf) {
+        for (GameObject* child : go->children) {
+            DrawHierarchyNode(child);
+        }
+        ImGui::TreePop();
     }
 }
 
@@ -454,11 +577,26 @@ void ModuleEditor::DrawInspector() {
         ComponentTransform* transform = selectedGameObject->GetComponent<ComponentTransform>(ComponentType::TRANSFORM);
         if (transform != nullptr) {
             if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen)) {
+                // Guardamos la foto de cómo estaba ANTES de que los sliders lo modifiquen
+                UndoState beforeEdit = { selectedGameObject, transform->position, transform->eulerRotation, transform->rotation, transform->scale };
+                bool startedEditing = false;
+
                 ImGui::DragFloat3("Position", &transform->position[0], 0.1f);
+                startedEditing |= ImGui::IsItemActivated();
+
                 if (ImGui::DragFloat3("Rotation", &transform->eulerRotation[0], 0.5f)) {
                     transform->UpdateRotationFromEuler();
                 }
+                startedEditing |= ImGui::IsItemActivated();
+
                 ImGui::DragFloat3("Scale", &transform->scale[0], 0.1f);
+                startedEditing |= ImGui::IsItemActivated();
+
+                // Si hemos empezado a arrastrar o escribir en CUALQUIERA de los 3, guardamos para Ctrl+Z
+                if (startedEditing) {
+                    if (g_UndoStack.size() > 50) g_UndoStack.erase(g_UndoStack.begin());
+                    g_UndoStack.push_back(beforeEdit);
+                }
             }
         }
 
@@ -559,6 +697,8 @@ void ModuleEditor::DrawConfiguration() {
         ImGui::Checkbox("Grid", &App->renderer3D->showGrid);
         ImGui::Checkbox("Axis", &App->renderer3D->showAxis);
         ImGui::Checkbox("Bounding boxes (AABB)", &App->renderer3D->showAABB);
+        ImGui::Checkbox("Mouse Picking Ray", &App->renderer3D->showRay);
+
     }
 
     if (ImGui::CollapsingHeader("Camera")) {

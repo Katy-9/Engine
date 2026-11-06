@@ -26,7 +26,6 @@ public:
     SDL_GLContext context = nullptr;
     unsigned int defaultShaderProgram = 0;
 
-    // Ayudas visuales (el editor las activa desde Configuration)
     bool showGrid = true;
     bool showAxis = true;
     bool showAABB = false;
@@ -35,6 +34,10 @@ public:
     bool depthTest = true;
     bool cullFace = false;
     void SetVSync(bool enable);
+    bool showRay = true;
+    bool hasLastRay = false;
+    glm::vec3 lastRayOrigin{ 0.0f };
+    glm::vec3 lastRayEnd{ 0.0f };
 
 private:
     void CreateDebugResources();

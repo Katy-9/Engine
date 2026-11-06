@@ -329,6 +329,16 @@ update_status ModuleRenderer3D::PostUpdate(float dt) {
     if (showAxis) glDrawArrays(GL_LINES, gridVertexCount, 6);
 
     if (showAABB && App->scene->GetRoot()) DrawAABBs(App->scene->GetRoot());
+    if (showRay && hasLastRay) {
+        float rayVerts[2 * 6] = {
+            lastRayOrigin.x, lastRayOrigin.y, lastRayOrigin.z,  1.0f, 0.0f, 1.0f, // Origen (Magenta)
+            lastRayEnd.x,    lastRayEnd.y,    lastRayEnd.z,     0.0f, 1.0f, 1.0f  // Fin (Cian)
+        };
+        glBindVertexArray(aabbVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, aabbVBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(rayVerts), rayVerts);
+        glDrawArrays(GL_LINES, 0, 2);
+    }
 
     glBindVertexArray(0);
     glUseProgram(0);

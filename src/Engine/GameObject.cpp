@@ -107,11 +107,15 @@ GameObject* GameObject::Clone(GameObject* newParent) {
     return clone;
 }
 void GameObject::SetParent(GameObject* newParent) {
-
-    if (newParent == parent) return; 
-    if (newParent == this) return; 
+    if (newParent == parent || newParent == this) return;
     for (GameObject* p = newParent; p != nullptr; p = p->parent) {
         if (p == this) return;
+    }
+
+    ComponentTransform* transform = GetComponent<ComponentTransform>(ComponentType::TRANSFORM);
+    glm::mat4 oldGlobalMatrix(1.0f);
+    if (transform != nullptr) {
+        oldGlobalMatrix = transform->GetGlobalMatrix();
     }
 
     if (parent != nullptr) {
@@ -127,6 +131,10 @@ void GameObject::SetParent(GameObject* newParent) {
     parent = newParent;
     if (parent != nullptr) {
         parent->children.push_back(this);
+    }
+
+    if (transform != nullptr) {
+        transform->SetGlobalMatrix(oldGlobalMatrix);
     }
 }
 
