@@ -27,6 +27,9 @@ public:
     float yaw;
     float pitch;
 
+    bool isUsingGizmo = false;
+    glm::vec3 ScreenToWorldRay(float mouseX, float mouseY, float screenWidth, float screenHeight);
+
     // Ajustables desde la ventana de configuración
     float baseSpeed = 20.0f;
     float turnSpeed = 0.2f;

@@ -33,7 +33,7 @@ update_status ModuleCamera3D::Update(float dt) {
 
     const float boost = (keys[SDL_SCANCODE_LSHIFT] || keys[SDL_SCANCODE_RSHIFT]) ? 2.0f : 1.0f;
     const float moveSpeed = baseSpeed * boost * dt;
-    const bool mouseFree = isViewportHovered || rightClick;
+    const bool mouseFree = (isViewportHovered || rightClick) && !isUsingGizmo;
 
     const bool orbiting = alt && leftClick && mouseFree;
 
@@ -125,4 +125,17 @@ glm::mat4 ModuleCamera3D::GetViewMatrix() const {
 
 glm::mat4 ModuleCamera3D::GetProjectionMatrix() const {
     return glm::perspective(glm::radians(fov), aspectRatio, 0.1f, 10000.0f);
+}
+
+glm::vec3 ModuleCamera3D::ScreenToWorldRay(float mouseX, float mouseY, float screenWidth, float screenHeight) {
+    float x = (2.0f * mouseX) / screenWidth - 1.0f;
+    float y = 1.0f - (2.0f * mouseY) / screenHeight;
+
+    glm::vec4 clipCoords(x, y, -1.0f, 1.0f);
+
+    glm::vec4 eyeCoords = glm::inverse(GetProjectionMatrix()) * clipCoords;
+    eyeCoords = glm::vec4(eyeCoords.x, eyeCoords.y, -1.0f, 0.0f);
+
+    glm::vec3 rayWorld = glm::vec3(glm::inverse(GetViewMatrix()) * eyeCoords);
+    return glm::normalize(rayWorld);
 }

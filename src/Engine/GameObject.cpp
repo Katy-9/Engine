@@ -129,3 +129,24 @@ void GameObject::SetParent(GameObject* newParent) {
         parent->children.push_back(this);
     }
 }
+
+bool GameObject::RayAABBIntersection(const glm::vec3& rayOrigin, const glm::vec3& rayDir, float& outDist) {
+    glm::vec3 minAABB, maxAABB;
+    if (!GetWorldAABB(minAABB, maxAABB)) return false;
+
+    glm::vec3 invDir = 1.0f / rayDir;
+    glm::vec3 t0 = (minAABB - rayOrigin) * invDir;
+    glm::vec3 t1 = (maxAABB - rayOrigin) * invDir;
+
+    glm::vec3 tmin = glm::min(t0, t1);
+    glm::vec3 tmax = glm::max(t0, t1);
+
+    float tmin_final = glm::max(glm::max(tmin.x, tmin.y), tmin.z);
+    float tmax_final = glm::min(glm::min(tmax.x, tmax.y), tmax.z);
+
+    if (tmax_final >= tmin_final && tmax_final >= 0.0f) {
+        outDist = tmin_final;
+        return true;
+    }
+    return false;
+}

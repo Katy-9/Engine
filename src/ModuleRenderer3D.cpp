@@ -128,7 +128,7 @@ void ModuleRenderer3D::CreateFramebuffer(int width, int height) {
     glGenRenderbuffers(1, &sceneRBO);
     glBindRenderbuffer(GL_RENDERBUFFER, sceneRBO);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, renderWidth, renderHeight);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH24_STENCIL8, GL_RENDERBUFFER, sceneRBO);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, sceneRBO);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

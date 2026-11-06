@@ -1,6 +1,8 @@
 #include "ComponentTransform.h"
 #include "GameObject.h"
 #include <glm/gtc/matrix_transform.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/matrix_decompose.hpp>
 
 ComponentTransform::ComponentTransform(GameObject* owner)
     : Component(owner, ComponentType::TRANSFORM)
@@ -41,4 +43,22 @@ glm::mat4 ComponentTransform::GetGlobalMatrix() const {
 
     // 3. Si no tiene padre (es un nodo raíz), la matriz local es su matriz global.
     return localMatrix;
+}
+
+void ComponentTransform::SetGlobalMatrix(const glm::mat4& globalMatrix) {
+    glm::mat4 localMatrix = globalMatrix;
+
+    // Si tenemos padre, la matriz del Gizmo (Global) hay que pasarla a Local multiplicando por la inversa del padre
+    if (owner->parent != nullptr) {
+        ComponentTransform* pTransform = owner->parent->GetComponent<ComponentTransform>(ComponentType::TRANSFORM);
+        if (pTransform) {
+            localMatrix = glm::inverse(pTransform->GetGlobalMatrix()) * globalMatrix;
+        }
+    }
+
+    // Descomponemos la matriz resultante con GLM y lo guardamos
+    glm::vec3 skew;
+    glm::vec4 perspective;
+    glm::decompose(localMatrix, scale, rotation, position, skew, perspective);
+    eulerRotation = glm::degrees(glm::eulerAngles(rotation));
 }

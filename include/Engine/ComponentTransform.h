@@ -8,11 +8,11 @@ public:
     ComponentTransform(GameObject* owner);
     virtual ~ComponentTransform();
 
-    // Actualiza el Quaternion interno basándose en los ángulos Euler de la UI
     void UpdateRotationFromEuler();
 
-    // Calcula y devuelve la matriz 4x4 final que se enviará al Shader de OpenGL
     glm::mat4 GetGlobalMatrix() const;
+
+    void SetGlobalMatrix(const glm::mat4& globalMatrix);
 
 public:
     glm::vec3 position;
