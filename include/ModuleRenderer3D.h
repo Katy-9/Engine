@@ -33,8 +33,9 @@ public:
     bool wireframe = false;
     bool depthTest = true;
     bool cullFace = false;
+    bool showOutline = true;
     void SetVSync(bool enable);
-    bool showRay = true;
+    bool showRay = false;
     bool hasLastRay = false;
     glm::vec3 lastRayOrigin{ 0.0f };
     glm::vec3 lastRayEnd{ 0.0f };

@@ -295,13 +295,62 @@ update_status ModuleRenderer3D::PreUpdate(float dt) {
     glBindFramebuffer(GL_FRAMEBUFFER, sceneFBO);
     glViewport(0, 0, renderWidth, renderHeight);
     glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     return UPDATE_CONTINUE;
 }
 
 void ModuleRenderer3D::SetVSync(bool enable) {
     vsync = enable;
     if (!SDL_GL_SetSwapInterval(enable ? 1 : 0)) LOG("VSync not supported: %s", SDL_GetError());
+}
+
+static void DrawOutlineRecursive(GameObject* go, unsigned int shader, bool pass1_writeStencil, const float outlineColor[4]) {
+    if (!go->active) return;
+
+    ComponentMesh* mesh = go->GetComponent<ComponentMesh>(ComponentType::MESH);
+    ComponentTransform* transform = go->GetComponent<ComponentTransform>(ComponentType::TRANSFORM);
+
+    if (mesh && transform && mesh->vao != 0) {
+        glm::mat4 globalMat = transform->GetGlobalMatrix();
+
+        if (!pass1_writeStencil) {
+            glm::vec3 localCenter = (mesh->aabbMin + mesh->aabbMax) * 0.5f;
+            globalMat = globalMat
+                * glm::translate(glm::mat4(1.0f), localCenter)
+                * glm::scale(glm::mat4(1.0f), glm::vec3(1.03f))
+                * glm::translate(glm::mat4(1.0f), -localCenter);
+        }
+
+        glUniformMatrix4fv(glGetUniformLocation(shader, "model"), 1, GL_FALSE, glm::value_ptr(globalMat));
+        glUniform1i(glGetUniformLocation(shader, "hasTexture"), 0);
+        glUniform4fv(glGetUniformLocation(shader, "colorTint"), 1, outlineColor);
+
+        glBindVertexArray(mesh->vao);
+        if (!mesh->indices.empty()) {
+            glDrawElements(GL_TRIANGLES, mesh->numIndices, GL_UNSIGNED_INT, 0);
+        }
+        else {
+            glDrawArrays(GL_TRIANGLES, 0, mesh->numVertices);
+        }
+
+        if (!pass1_writeStencil) {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            glLineWidth(4.0f);
+            if (!mesh->indices.empty()) {
+                glDrawElements(GL_TRIANGLES, mesh->numIndices, GL_UNSIGNED_INT, 0);
+            }
+            else {
+                glDrawArrays(GL_TRIANGLES, 0, mesh->numVertices);
+            }
+            glLineWidth(1.0f);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+        glBindVertexArray(0);
+    }
+
+    for (GameObject* child : go->children) {
+        DrawOutlineRecursive(child, shader, pass1_writeStencil, outlineColor);
+    }
 }
 
 update_status ModuleRenderer3D::PostUpdate(float dt) {
@@ -311,7 +360,7 @@ update_status ModuleRenderer3D::PostUpdate(float dt) {
     if (depthTest) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
     if (cullFace) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
 
-    // --- ESCENA ---
+    // --- 1. ESCENA NORMAL ---
     glUseProgram(defaultShaderProgram);
     glUniformMatrix4fv(glGetUniformLocation(defaultShaderProgram, "view"), 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(glGetUniformLocation(defaultShaderProgram, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
@@ -320,7 +369,46 @@ update_status ModuleRenderer3D::PostUpdate(float dt) {
         DrawGameObject(App->scene->GetRoot(), defaultShaderProgram, wireframe);
     }
 
-    // --- AYUDAS VISUALES: grid, ejes y cajas ---
+    // --- 2. CONTORNO DE SELECCIÓN TRANSLÚCIDO (STENCIL BUFFER + ALPHA BLEND) ---
+    if (showOutline && App->scene->selected != nullptr && App->scene->selected != App->scene->GetRoot()) {
+        glUseProgram(defaultShaderProgram);
+        glEnable(GL_STENCIL_TEST);
+        glClearStencil(0);
+        glClear(GL_STENCIL_BUFFER_BIT);
+
+        // Desactivamos Depth Test ANTES del Pase 1 para que la máscara recorte el interior y se vea la textura original
+        glDisable(GL_DEPTH_TEST);
+
+        // PASE 1: Marcar con un '1' en el Stencil todos los píxeles de la pieza original
+        glStencilFunc(GL_ALWAYS, 1, 0xFF);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+        glStencilMask(0xFF);
+        glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+        glDepthMask(GL_FALSE);
+
+        const float outlineColor[4] = { 1.0f, 0.55f, 0.0f, 0.50f }; // Naranja translúcido (0.50 de Alpha)
+        DrawOutlineRecursive(App->scene->selected, defaultShaderProgram, true, outlineColor);
+
+        // PASE 2: Pintar el duplicado un 3% más grande con transparencia SOLO alrededor de la pieza
+        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+        glStencilMask(0x00);
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        DrawOutlineRecursive(App->scene->selected, defaultShaderProgram, false, outlineColor);
+
+        // Restaurar el estado de OpenGL
+        glDisable(GL_BLEND);
+        glStencilMask(0xFF);
+        glStencilFunc(GL_ALWAYS, 0, 0xFF);
+        glDisable(GL_STENCIL_TEST);
+        glDepthMask(GL_TRUE);
+        if (depthTest) glEnable(GL_DEPTH_TEST);
+    }
+
+    // --- 3. AYUDAS VISUALES: grid, ejes, cajas y rayo ---
     glUseProgram(debugProgram);
     glUniformMatrix4fv(glGetUniformLocation(debugProgram, "viewProj"), 1, GL_FALSE, glm::value_ptr(projection * view));
 
@@ -329,10 +417,11 @@ update_status ModuleRenderer3D::PostUpdate(float dt) {
     if (showAxis) glDrawArrays(GL_LINES, gridVertexCount, 6);
 
     if (showAABB && App->scene->GetRoot()) DrawAABBs(App->scene->GetRoot());
+
     if (showRay && hasLastRay) {
         float rayVerts[2 * 6] = {
-            lastRayOrigin.x, lastRayOrigin.y, lastRayOrigin.z,  1.0f, 0.0f, 1.0f, // Origen (Magenta)
-            lastRayEnd.x,    lastRayEnd.y,    lastRayEnd.z,     0.0f, 1.0f, 1.0f  // Fin (Cian)
+            lastRayOrigin.x, lastRayOrigin.y, lastRayOrigin.z,  1.0f, 0.0f, 1.0f,
+            lastRayEnd.x,    lastRayEnd.y,    lastRayEnd.z,     0.0f, 1.0f, 1.0f
         };
         glBindVertexArray(aabbVAO);
         glBindBuffer(GL_ARRAY_BUFFER, aabbVBO);

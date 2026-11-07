@@ -54,6 +54,7 @@ struct UndoState {
 };
 static std::vector<UndoState> g_UndoStack;
 static bool g_WasUsingGizmo = false;
+static bool g_MaximizeViewport = false;
 
 static void PushUndo(GameObject* go) {
     if (!go) return;
@@ -117,13 +118,22 @@ update_status ModuleEditor::PreUpdate(float dt) {
 update_status ModuleEditor::Update(float dt) {
     update_status ret = DrawMainMenuBar();
     DrawSceneWindow();
-    if (showConsole) DrawConsole();
-    if (showHierarchy) DrawHierarchy();
-    if (showInspector) DrawInspector();
+
+    // Solo dibujamos los demás paneles si el Viewport NO está maximizado
+    if (!g_MaximizeViewport) {
+        if (showConsole) DrawConsole();
+        if (showHierarchy) DrawHierarchy();
+        if (showInspector) DrawInspector();
+        if (showConfigurationWindow) DrawConfiguration();
+    }
     if (showAboutWindow) DrawAboutWindow();
-    if (showConfigurationWindow) DrawConfiguration();
 
     if (!ImGui::GetIO().WantTextInput) {
+        // ESPACIO: Maximizar / Restaurar el Scene Viewport
+        if (ImGui::IsKeyPressed(ImGuiKey_Space)) {
+            g_MaximizeViewport = !g_MaximizeViewport;
+        }
+
         // CTRL + Z (Deshacer última transformación y limpiar línea de debug)
         if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z) && !g_UndoStack.empty()) {
             UndoState last = g_UndoStack.back();
@@ -135,24 +145,21 @@ update_status ModuleEditor::Update(float dt) {
                 t->rotation = last.rot;
                 t->scale = last.scale;
                 App->scene->selected = last.go;
-                App->renderer3D->hasLastRay = false; // <--- BORRA LA LÍNEA DE DEBUG AL HACER CTRL+Z
+                App->renderer3D->hasLastRay = false;
                 LOG("Undo applied to: %s", last.go->name.c_str());
             }
         }
 
         if (App->scene->selected != nullptr) {
-            // F2: Renombrar el objeto seleccionado
             if (ImGui::IsKeyPressed(ImGuiKey_F2)) {
                 renamingObject = App->scene->selected;
                 snprintf(renameBuffer, sizeof(renameBuffer), "%s", renamingObject->name.c_str());
             }
-            // SUPR: Borrar
             if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
                 if (g_UndoStack.size() > 0) g_UndoStack.clear();
-                App->renderer3D->hasLastRay = false; // <--- También la borramos si eliminas el objeto
+                App->renderer3D->hasLastRay = false;
                 App->scene->DestroyGameObject(App->scene->selected);
             }
-            // CTRL + D: Duplicar
             if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_D)) {
                 GameObject* clonedObj = App->scene->selected->Clone();
                 App->scene->selected = clonedObj;
@@ -232,7 +239,9 @@ update_status ModuleEditor::DrawMainMenuBar() {
 }
 
 void ModuleEditor::DrawSceneWindow() {
-    PlaceWindow(0.20f, 0.00f, 0.55f, 0.70f);
+    if (g_MaximizeViewport) PlaceWindow(0.00f, 0.00f, 1.00f, 1.00f);
+    else                    PlaceWindow(0.20f, 0.00f, 0.55f, 0.70f);
+
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::Begin("Scene Viewport", &showSceneWindow);
 
@@ -312,6 +321,10 @@ void ModuleEditor::DrawSceneWindow() {
     if (ImGui::Button("Scale (R)"))  mCurrentGizmoOperation = ImGuizmo::SCALE;     ImGui::SameLine();
     if (ImGui::Button(mCurrentGizmoMode == ImGuizmo::LOCAL ? "Mode: Local" : "Mode: World")) {
         mCurrentGizmoMode = (mCurrentGizmoMode == ImGuizmo::LOCAL) ? ImGuizmo::WORLD : ImGuizmo::LOCAL;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(g_MaximizeViewport ? "Restore (Space)" : "Maximize (Space)")) {
+        g_MaximizeViewport = !g_MaximizeViewport;
     }
     ImGui::PopStyleColor();
     bool isToolbarHovered = ImGui::IsItemHovered() || ImGui::IsAnyItemActive();
@@ -698,6 +711,7 @@ void ModuleEditor::DrawConfiguration() {
         ImGui::Checkbox("Axis", &App->renderer3D->showAxis);
         ImGui::Checkbox("Bounding boxes (AABB)", &App->renderer3D->showAABB);
         ImGui::Checkbox("Mouse Picking Ray", &App->renderer3D->showRay);
+        ImGui::Checkbox("Selection Outline (Stencil)", &App->renderer3D->showOutline);
 
     }
 
