@@ -7,6 +7,7 @@
 #include "ComponentMesh.h"
 #include "ComponentTransform.h"
 #include "ComponentMaterial.h"
+#include "ResourceMesh.h"
 #include "Log.h"
 
 #include <vector>
@@ -150,7 +151,7 @@ void DrawGameObject(GameObject* go, unsigned int shader, bool wireframe) {
             unsigned int hasTexLoc = glGetUniformLocation(shader, "hasTexture");
 
             // Lógica para elegir qué textura usar
-            unsigned int textureToUse = material->textureID;
+            unsigned int textureToUse = material->GetTextureID();
             if (material->useCheckerTexture) {
                 textureToUse = checkerTextureID; // Usamos el ajedrez si el botón está pulsado
             }
@@ -309,12 +310,13 @@ static void DrawOutlineRecursive(GameObject* go, unsigned int shader, bool pass1
 
     ComponentMesh* mesh = go->GetComponent<ComponentMesh>(ComponentType::MESH);
     ComponentTransform* transform = go->GetComponent<ComponentTransform>(ComponentType::TRANSFORM);
+    const ResourceMesh* res = mesh ? mesh->GetResource() : nullptr;
 
-    if (mesh && transform && mesh->vao != 0) {
+    if (res && transform && res->vao != 0) {
         glm::mat4 globalMat = transform->GetGlobalMatrix();
 
         if (!pass1_writeStencil) {
-            glm::vec3 localCenter = (mesh->aabbMin + mesh->aabbMax) * 0.5f;
+            glm::vec3 localCenter = (res->aabbMin + res->aabbMax) * 0.5f;
             globalMat = globalMat
                 * glm::translate(glm::mat4(1.0f), localCenter)
                 * glm::scale(glm::mat4(1.0f), glm::vec3(1.03f))
@@ -325,22 +327,22 @@ static void DrawOutlineRecursive(GameObject* go, unsigned int shader, bool pass1
         glUniform1i(glGetUniformLocation(shader, "hasTexture"), 0);
         glUniform4fv(glGetUniformLocation(shader, "colorTint"), 1, outlineColor);
 
-        glBindVertexArray(mesh->vao);
-        if (!mesh->indices.empty()) {
-            glDrawElements(GL_TRIANGLES, mesh->numIndices, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(res->vao);
+        if (!res->indices.empty()) {
+            glDrawElements(GL_TRIANGLES, res->numIndices, GL_UNSIGNED_INT, 0);
         }
         else {
-            glDrawArrays(GL_TRIANGLES, 0, mesh->numVertices);
+            glDrawArrays(GL_TRIANGLES, 0, res->numVertices);
         }
 
         if (!pass1_writeStencil) {
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             glLineWidth(4.0f);
-            if (!mesh->indices.empty()) {
-                glDrawElements(GL_TRIANGLES, mesh->numIndices, GL_UNSIGNED_INT, 0);
+            if (!res->indices.empty()) {
+                glDrawElements(GL_TRIANGLES, res->numIndices, GL_UNSIGNED_INT, 0);
             }
             else {
-                glDrawArrays(GL_TRIANGLES, 0, mesh->numVertices);
+                glDrawArrays(GL_TRIANGLES, 0, res->numVertices);
             }
             glLineWidth(1.0f);
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);

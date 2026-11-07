@@ -21,14 +21,13 @@ bool ModuleScene::Init() {
     const char* base = SDL_GetBasePath();
     const std::string basePath = base ? base : "";
 
-    GameObject* house = App->importer->LoadFBX(basePath + "Assets/Resources/baker_house.fbx");
+    GameObject* street = App->importer->LoadFBX(basePath + "Assets/Resources/Street environment_V01.fbx");
 
-    // La cámara
-    if (house != nullptr) {
-        selected = house;
-
-        App->camera->Reference = glm::vec3(0.0f, 0.0f, 0.0f);
-        App->camera->Position = glm::vec3(0.0f, 10.0f, 30.0f);
+    // Encuadramos toda la escena al arrancar; sin selección para que no salga un contorno gigante
+    if (street != nullptr) {
+        selected = street;
+        App->camera->Focus();
+        selected = nullptr;
     }
     return true;
 }

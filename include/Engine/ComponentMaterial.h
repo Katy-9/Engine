@@ -1,21 +1,24 @@
 #pragma once
 #include "Component.h"
-#include <string>
+
+class ResourceTexture;
 
 class ComponentMaterial : public Component {
 public:
     ComponentMaterial(GameObject* owner) : Component(owner, ComponentType::MATERIAL) {}
-    virtual ~ComponentMaterial() {}
+    virtual ~ComponentMaterial();
+
+    // Cambia la textura que usa este componente, ajustando los contadores de referencias
+    void SetTexture(ResourceTexture* newTexture);
+    ResourceTexture* GetTexture() const { return texture; }
+    unsigned int GetTextureID() const;   // 0 si no hay textura
 
 public:
-    std::string texturePath = "None";
-    int textureWidth = 0;
-    int textureHeight = 0;
-
-    unsigned int textureID = 0; // ID de la textura en VRAM que genera OpenGL
-
     // Color Picker (R, G, B, A)
     float colorTint[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
     bool useCheckerTexture = false;
+
+private:
+    ResourceTexture* texture = nullptr;
 };

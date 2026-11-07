@@ -6,6 +6,7 @@
 #include "ModuleScene.h"
 #include "ModuleCamera3D.h"
 #include "ModuleImporter.h"
+#include "ModuleResources.h"
 #include "Log.h"
 #include <SDL3/SDL.h>
 
@@ -13,6 +14,7 @@ Application::Application() {
     input = new ModuleInput(this);
     window = new ModuleWindow(this);
     renderer3D = new ModuleRenderer3D(this);
+    resources = new ModuleResources(this);
     importer = new ModuleImporter(this);
 	camera = new ModuleCamera3D(this);
     scene = new ModuleScene(this);
@@ -21,6 +23,7 @@ Application::Application() {
     modules.push_back(input);
     modules.push_back(window);
     modules.push_back(renderer3D);
+    modules.push_back(resources);
     modules.push_back(importer);
 	modules.push_back(camera);
     modules.push_back(scene);

@@ -16,6 +16,9 @@
 #include <cfloat>
 #include "ModuleCamera3D.h"
 #include "ModuleImporter.h"
+#include "ModuleResources.h"
+#include "ResourceMesh.h"
+#include "ResourceTexture.h"
 
 
 #ifdef _WIN32
@@ -33,6 +36,8 @@
 #include <imgui_impl_opengl3.h>
 #include <IL/il.h>
 #include <glad/glad.h>
+#include <algorithm>
+#include <cstdint>
 
 #include "ImGuizmo.h"
 #include <glm/gtc/type_ptr.hpp>
@@ -81,6 +86,12 @@ static void PlaceWindow(float x, float y, float w, float h) {
     ImGui::SetNextWindowSize(ImVec2(w * areaW, h * areaH), ImGuiCond_Always);
 }
 
+// Para mostrar claves largas: solo el nombre del fichero (y lo que venga detrás, p. ej. "#12")
+static std::string ShortName(const std::string& key) {
+    const size_t slash = key.find_last_of("/\\");
+    return slash == std::string::npos ? key : key.substr(slash + 1);
+}
+
 ModuleEditor::ModuleEditor(Application* app) : Module(app) {}
 ModuleEditor::~ModuleEditor() {}
 
@@ -127,6 +138,8 @@ update_status ModuleEditor::Update(float dt) {
         if (showConfigurationWindow) DrawConfiguration();
     }
     if (showAboutWindow) DrawAboutWindow();
+
+    if (showResourcesWindow) DrawResourcesWindow();
 
     if (!ImGui::GetIO().WantTextInput) {
         // ESPACIO: Maximizar / Restaurar el Scene Viewport
@@ -222,6 +235,7 @@ update_status ModuleEditor::DrawMainMenuBar() {
             ImGui::MenuItem("Console", nullptr, &showConsole);
             ImGui::MenuItem("Configuration", nullptr, &showConfigurationWindow);
             ImGui::MenuItem("About", nullptr, &showAboutWindow);
+            ImGui::MenuItem("Resources", nullptr, &showResourcesWindow);
             ImGui::EndMenu();
         }
 
@@ -570,6 +584,59 @@ void ModuleEditor::DrawConsole() {
     ImGui::End();
 }
 
+void ModuleEditor::DrawResourcesWindow() {
+    ImGui::SetNextWindowPos(ImVec2(300.0f, 200.0f), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(520.0f, 320.0f), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Resources", &showResourcesWindow);
+
+    // Tabla de recursos de un tipo: nombre, UUID y cuántos GameObjects lo usan. Cada fila se puede arrastrar al Inspector
+    auto drawTable = [&](ResourceType type, const char* payloadName) {
+        if (ImGui::BeginTable("##ResourceTable", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_ScrollY)) {
+            ImGui::TableSetupScrollFreeze(0, 1);
+            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("UUID", ImGuiTableColumnFlags_WidthFixed, 160.0f);
+            ImGui::TableSetupColumn("Refs", ImGuiTableColumnFlags_WidthFixed, 40.0f);
+            ImGui::TableHeadersRow();
+
+            for (Resource* r : App->resources->GetResources(type)) {
+                const std::string name = ShortName(r->GetKey());
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+
+                ImGui::PushID(r);
+                ImGui::Selectable(name.c_str(), false, ImGuiSelectableFlags_SpanAllColumns);
+                if (ImGui::BeginDragDropSource()) {
+                    const uint64_t uuid = r->GetUUID();
+                    ImGui::SetDragDropPayload(payloadName, &uuid, sizeof(uuid));
+                    ImGui::Text("%s", name.c_str());
+                    ImGui::EndDragDropSource();
+                }
+                ImGui::PopID();
+
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%llu", (unsigned long long)r->GetUUID());
+                ImGui::TableSetColumnIndex(2);
+                ImGui::Text("%u", r->GetReferenceCount());
+            }
+            ImGui::EndTable();
+        }
+        };
+
+    if (ImGui::BeginTabBar("ResourceTabs")) {
+        if (ImGui::BeginTabItem("Meshes")) {
+            drawTable(ResourceType::MESH, "RESOURCE_MESH");
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Textures")) {
+            drawTable(ResourceType::TEXTURE, "RESOURCE_TEXTURE");
+            ImGui::EndTabItem();
+        }
+        ImGui::EndTabBar();
+    }
+
+    ImGui::End();
+}
+
 void ModuleEditor::DrawInspector() {
     PlaceWindow(0.75f, 0.00f, 0.25f, 0.55f);
     ImGui::Begin("Inspector", &showInspector);
@@ -616,9 +683,41 @@ void ModuleEditor::DrawInspector() {
         ComponentMesh* mesh = selectedGameObject->GetComponent<ComponentMesh>(ComponentType::MESH);
         if (mesh != nullptr) {
             if (ImGui::CollapsingHeader("Mesh", ImGuiTreeNodeFlags_DefaultOpen)) {
-                ImGui::Text("Vertices: %d", mesh->numVertices);
-                ImGui::Text("Indices: %d", mesh->numIndices);
-                ImGui::Text("Triangles: %d", mesh->numIndices / 3);
+                ResourceMesh* res = mesh->GetResource();
+
+                // Botón con la malla actual: un clic abre la lista, y también acepta una malla arrastrada desde Resources
+                const std::string meshLabel = (res ? ShortName(res->GetKey()) : std::string("None")) + "##MeshPicker";
+                if (ImGui::Button(meshLabel.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                    ImGui::OpenPopup("MeshPickerPopup");
+                }
+                if (ImGui::BeginDragDropTarget()) {
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("RESOURCE_MESH")) {
+                        Resource* dropped = App->resources->Find(*(const uint64_t*)payload->Data);
+                        if (dropped && dropped->GetType() == ResourceType::MESH) {
+                            mesh->SetResource(static_cast<ResourceMesh*>(dropped));
+                        }
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+                if (ImGui::BeginPopup("MeshPickerPopup")) {
+                    for (Resource* r : App->resources->GetResources(ResourceType::MESH)) {
+                        ImGui::PushID(r);
+                        if (ImGui::Selectable(ShortName(r->GetKey()).c_str(), r == res)) {
+                            mesh->SetResource(static_cast<ResourceMesh*>(r));
+                        }
+                        ImGui::PopID();
+                    }
+                    ImGui::EndPopup();
+                }
+
+                res = mesh->GetResource();   // puede haber cambiado arriba
+                if (res != nullptr) {
+                    ImGui::Text("UUID: %llu", (unsigned long long)res->GetUUID());
+                    ImGui::Text("GameObjects using it: %u", res->GetReferenceCount());
+                    ImGui::Text("Vertices: %d", res->numVertices);
+                    ImGui::Text("Indices: %d", res->numIndices);
+                    ImGui::Text("Triangles: %d", res->numIndices / 3);
+                }
                 ImGui::Checkbox("Wireframe", &mesh->showWireframe);
                 ImGui::Checkbox("Vertex Normals", &mesh->showVertexNormals);
                 ImGui::Checkbox("Face Normals", &mesh->showFaceNormals);
@@ -628,10 +727,39 @@ void ModuleEditor::DrawInspector() {
         ComponentMaterial* material = selectedGameObject->GetComponent<ComponentMaterial>(ComponentType::MATERIAL);
         if (material != nullptr) {
             if (ImGui::CollapsingHeader("Texture", ImGuiTreeNodeFlags_DefaultOpen)) {
-                ImGui::Text("Path: %s", material->texturePath.c_str());
-                ImGui::Text("Size: %dx%d", material->textureWidth, material->textureHeight);
-                if (material->textureID != 0) {
-                    ImGui::Image((ImTextureID)(intptr_t)material->textureID, ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
+                ResourceTexture* tex = material->GetTexture();
+
+                const std::string texLabel = (tex ? ShortName(tex->GetKey()) : std::string("None")) + "##TexturePicker";
+                if (ImGui::Button(texLabel.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                    ImGui::OpenPopup("TexturePickerPopup");
+                }
+                if (ImGui::BeginDragDropTarget()) {
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("RESOURCE_TEXTURE")) {
+                        Resource* dropped = App->resources->Find(*(const uint64_t*)payload->Data);
+                        if (dropped && dropped->GetType() == ResourceType::TEXTURE) {
+                            material->SetTexture(static_cast<ResourceTexture*>(dropped));
+                        }
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+                if (ImGui::BeginPopup("TexturePickerPopup")) {
+                    if (ImGui::Selectable("None", tex == nullptr)) material->SetTexture(nullptr);
+                    for (Resource* r : App->resources->GetResources(ResourceType::TEXTURE)) {
+                        ImGui::PushID(r);
+                        if (ImGui::Selectable(ShortName(r->GetKey()).c_str(), r == tex)) {
+                            material->SetTexture(static_cast<ResourceTexture*>(r));
+                        }
+                        ImGui::PopID();
+                    }
+                    ImGui::EndPopup();
+                }
+
+                tex = material->GetTexture();   // puede haber cambiado arriba
+                if (tex != nullptr) {
+                    ImGui::Text("UUID: %llu", (unsigned long long)tex->GetUUID());
+                    ImGui::Text("GameObjects using it: %u", tex->GetReferenceCount());
+                    ImGui::Text("Size: %dx%d", tex->width, tex->height);
+                    ImGui::Image((ImTextureID)(intptr_t)tex->id, ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
                 }
                 ImGui::ColorEdit4("Color Tint", material->colorTint);
                 ImGui::Checkbox("Use Checker Texture", &material->useCheckerTexture);
@@ -730,8 +858,9 @@ void ModuleEditor::DrawConfiguration() {
         ImGui::Text("UI captures mouse: %s", App->input->uiCapturesMouse ? "yes" : "no");
     }
 
-    if (ImGui::CollapsingHeader("Textures")) {
-        ImGui::Text("Textures loaded: %d", (int)App->importer->GetLoadedTextureCount());
+    if (ImGui::CollapsingHeader("Resources")) {
+        ImGui::Text("Meshes in memory: %d", (int)App->resources->Count(ResourceType::MESH));
+        ImGui::Text("Textures in memory: %d", (int)App->resources->Count(ResourceType::TEXTURE));
     }
 
     ImGui::End();

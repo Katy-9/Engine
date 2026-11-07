@@ -16,6 +16,8 @@ public:
     glm::mat4 GetViewMatrix() const;
     glm::mat4 GetProjectionMatrix() const;
 
+    void Focus();
+
 public:
     glm::vec3 Position;
     glm::vec3 Reference;
@@ -38,7 +40,6 @@ public:
 private:
     void UpdateVectors();
     void Orbit(float dx, float dy, bool start);
-    void Focus();
 
     float orbitDistance = 10.0f;
     bool wasOrbiting = false;

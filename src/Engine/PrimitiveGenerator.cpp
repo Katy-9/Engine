@@ -3,6 +3,10 @@
 #include "ComponentTransform.h"
 #include "ComponentMesh.h"
 #include "ComponentMaterial.h"
+#include "ResourceMesh.h"
+#include "ModuleResources.h"
+#include "Application.h"
+extern Application* App;
 #include <cmath>
 
 #ifndef M_PI
@@ -16,12 +20,28 @@ namespace PrimitiveGenerator {
         GameObject* go = new GameObject(name, parent);
         go->CreateComponent<ComponentTransform>(ComponentType::TRANSFORM);
         go->CreateComponent<ComponentMaterial>(ComponentType::MATERIAL);
+        go->CreateComponent<ComponentMesh>(ComponentType::MESH);
+        return go;
+    }
+
+    // Las primitivas del mismo tipo comparten la misma malla en memoria
+    static ResourceMesh* GetOrCreateMesh(const std::string& key, bool& needsBuild) {
+        ResourceMesh* mesh = App->resources->FindMesh(key);
+        needsBuild = (mesh == nullptr);
+        if (needsBuild) mesh = App->resources->CreateMesh(key);
+        return mesh;
+    }
+
+    static GameObject* AssignMesh(GameObject* go, ResourceMesh* mesh) {
+        go->GetComponent<ComponentMesh>(ComponentType::MESH)->SetResource(mesh);
         return go;
     }
 
     GameObject* CreateCube(GameObject* parent) {
         GameObject* go = CreateBasePrimitive("Cube", parent);
-        ComponentMesh* mesh = go->CreateComponent<ComponentMesh>(ComponentType::MESH);
+        bool build = false;
+        ResourceMesh* mesh = GetOrCreateMesh("Primitive:Cube", build);
+        if (build) {
 
         // Los 8 vértices de un cubo. Usamos 24 vértices para mapear bien las texturas (UVs) por cada cara.
         float v[] = {
@@ -76,12 +96,15 @@ namespace PrimitiveGenerator {
         mesh->numVertices = 24;
         mesh->numIndices = 36;
         mesh->GenerateBuffers();
-        return go;
+        }
+        return AssignMesh(go, mesh);
     }
 
     GameObject* CreatePyramid(GameObject* parent) {
         GameObject* go = CreateBasePrimitive("Pyramid", parent);
-        ComponentMesh* mesh = go->CreateComponent<ComponentMesh>(ComponentType::MESH);
+        bool build = false;
+        ResourceMesh* mesh = GetOrCreateMesh("Primitive:Pyramid", build);
+        if (build) {
 
         float v[] = {
             // Base
@@ -106,12 +129,15 @@ namespace PrimitiveGenerator {
         mesh->numVertices = 5;
         mesh->numIndices = 18;
         mesh->GenerateBuffers();
-        return go;
+        }
+        return AssignMesh(go, mesh);
     }
 
     GameObject* CreateSphere(int segments, int rings, GameObject* parent) {
         GameObject* go = CreateBasePrimitive("Sphere", parent);
-        ComponentMesh* mesh = go->CreateComponent<ComponentMesh>(ComponentType::MESH);
+        bool build = false;
+        ResourceMesh* mesh = GetOrCreateMesh("Primitive:Sphere:" + std::to_string(segments) + ":" + std::to_string(rings), build);
+        if (build) {
 
         float radius = 0.5f;
         for (int y = 0; y <= rings; ++y) {
@@ -140,12 +166,15 @@ namespace PrimitiveGenerator {
         mesh->numVertices = mesh->vertices.size();
         mesh->numIndices = mesh->indices.size();
         mesh->GenerateBuffers();
-        return go;
+        }
+        return AssignMesh(go, mesh);
     }
 
     GameObject* CreateCylinder(int segments, GameObject* parent) {
         GameObject* go = CreateBasePrimitive("Cylinder", parent);
-        ComponentMesh* mesh = go->CreateComponent<ComponentMesh>(ComponentType::MESH);
+        bool build = false;
+        ResourceMesh* mesh = GetOrCreateMesh("Primitive:Cylinder:" + std::to_string(segments), build);
+        if (build) {
 
         float radius = 0.5f;
         float height = 1.0f;
@@ -219,12 +248,15 @@ namespace PrimitiveGenerator {
         mesh->numVertices = mesh->vertices.size();
         mesh->numIndices = mesh->indices.size();
         mesh->GenerateBuffers();
-        return go;
+        }
+        return AssignMesh(go, mesh);
     }
 
     GameObject* CreatePlane(GameObject* parent) {
         GameObject* go = CreateBasePrimitive("Plane", parent);
-        ComponentMesh* mesh = go->CreateComponent<ComponentMesh>(ComponentType::MESH);
+        bool build = false;
+        ResourceMesh* mesh = GetOrCreateMesh("Primitive:Plane", build);
+        if (build) {
 
         // Plano de 1x1 en XZ (normal hacia +Y)
         mesh->vertices = {
@@ -238,12 +270,15 @@ namespace PrimitiveGenerator {
         mesh->numVertices = (int)mesh->vertices.size();
         mesh->numIndices = (int)mesh->indices.size();
         mesh->GenerateBuffers();
-        return go;
+        }
+        return AssignMesh(go, mesh);
     }
 
     GameObject* CreateCone(int segments, GameObject* parent) {
         GameObject* go = CreateBasePrimitive("Cone", parent);
-        ComponentMesh* mesh = go->CreateComponent<ComponentMesh>(ComponentType::MESH);
+        bool build = false;
+        ResourceMesh* mesh = GetOrCreateMesh("Primitive:Cone:" + std::to_string(segments), build);
+        if (build) {
 
         const float radius = 0.5f;
         const float height = 1.0f;
@@ -278,6 +313,7 @@ namespace PrimitiveGenerator {
         mesh->numVertices = (int)mesh->vertices.size();
         mesh->numIndices = (int)mesh->indices.size();
         mesh->GenerateBuffers();
-        return go;
+        }
+        return AssignMesh(go, mesh);
     }
 }

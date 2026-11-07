@@ -11,6 +11,7 @@ class ModuleEditor;
 class ModuleScene;
 class ModuleCamera3D;
 class ModuleImporter;
+class ModuleResources;
 
 class Application {
 public:
@@ -29,6 +30,7 @@ public:
     ModuleScene* scene = nullptr;
 	ModuleCamera3D* camera = nullptr;
 	ModuleImporter* importer = nullptr;
+    ModuleResources* resources = nullptr;
 
     std::vector<float> fps_history;
 

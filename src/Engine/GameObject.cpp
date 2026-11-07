@@ -2,6 +2,7 @@
 #include "ComponentMesh.h"
 #include "ComponentMaterial.h"
 #include "ComponentTransform.h"
+#include "ResourceMesh.h"
 #include <cfloat>
 
 GameObject::GameObject(std::string name, GameObject* parent) : name(name), parent(parent) {
@@ -39,12 +40,14 @@ static void AccumulateAABB(GameObject* go, glm::vec3& mn, glm::vec3& mx, bool& f
     ComponentMesh* mesh = go->GetComponent<ComponentMesh>(ComponentType::MESH);
     ComponentTransform* transform = go->GetComponent<ComponentTransform>(ComponentType::TRANSFORM);
 
-    if (mesh && transform) {
+    const ResourceMesh* res = mesh ? mesh->GetResource() : nullptr;
+
+    if (res && transform) {
         const glm::mat4 m = transform->GetGlobalMatrix();
         for (int i = 0; i < 8; ++i) {
-            const glm::vec3 corner((i & 1) ? mesh->aabbMax.x : mesh->aabbMin.x,
-                (i & 2) ? mesh->aabbMax.y : mesh->aabbMin.y,
-                (i & 4) ? mesh->aabbMax.z : mesh->aabbMin.z);
+            const glm::vec3 corner((i & 1) ? res->aabbMax.x : res->aabbMin.x,
+                (i & 2) ? res->aabbMax.y : res->aabbMin.y,
+                (i & 4) ? res->aabbMax.z : res->aabbMin.z);
             const glm::vec3 world = glm::vec3(m * glm::vec4(corner, 1.0f));
             mn = glm::min(mn, world);
             mx = glm::max(mx, world);
@@ -77,10 +80,7 @@ GameObject* GameObject::Clone(GameObject* newParent) {
     ComponentMaterial* srcMat = GetComponent<ComponentMaterial>(ComponentType::MATERIAL);
     if (srcMat != nullptr) {
         ComponentMaterial* dstMat = clone->CreateComponent<ComponentMaterial>(ComponentType::MATERIAL);
-        dstMat->texturePath = srcMat->texturePath;
-        dstMat->textureWidth = srcMat->textureWidth;
-        dstMat->textureHeight = srcMat->textureHeight;
-        dstMat->textureID = srcMat->textureID;
+        dstMat->SetTexture(srcMat->GetTexture());
         dstMat->useCheckerTexture = srcMat->useCheckerTexture;
         for (int i = 0; i < 4; ++i) {
             dstMat->colorTint[i] = srcMat->colorTint[i];
@@ -89,15 +89,10 @@ GameObject* GameObject::Clone(GameObject* newParent) {
     ComponentMesh* srcMesh = GetComponent<ComponentMesh>(ComponentType::MESH);
     if (srcMesh != nullptr) {
         ComponentMesh* dstMesh = clone->CreateComponent<ComponentMesh>(ComponentType::MESH);
-        dstMesh->vertices = srcMesh->vertices;
-        dstMesh->indices = srcMesh->indices;
-        dstMesh->normals = srcMesh->normals;
-        dstMesh->numVertices = srcMesh->numVertices;
-        dstMesh->numIndices = srcMesh->numIndices;
+        dstMesh->SetResource(srcMesh->GetResource());   // misma malla en memoria, solo sube el contador
         dstMesh->showWireframe = srcMesh->showWireframe;
         dstMesh->showVertexNormals = srcMesh->showVertexNormals;
         dstMesh->showFaceNormals = srcMesh->showFaceNormals;
-        dstMesh->GenerateBuffers();
     }
 
     for (GameObject* child : this->children) {

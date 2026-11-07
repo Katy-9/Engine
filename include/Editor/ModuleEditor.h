@@ -25,6 +25,7 @@ private:
     void DrawConfiguration();
     void DrawInspector();
     void DrawSceneWindow();
+    void DrawResourcesWindow();
 
 private:
     bool showAboutWindow = false;
@@ -33,4 +34,5 @@ private:
     bool showInspector = true;
     bool showConsole = true;
     bool showSceneWindow = true;
+    bool showResourcesWindow = false;
 };
