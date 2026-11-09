@@ -1,11 +1,13 @@
 #pragma once
 #include "Module.h"
+#include <cstdint>
+#include <filesystem>
 #include <string>
 
 class GameObject;
-class ComponentMaterial;
-struct aiScene;
-struct aiNode;
+class ResourceTexture;
+class MetaFile;
+struct aiTexture;
 
 class ModuleImporter : public Module {
 public:
@@ -15,14 +17,21 @@ public:
     bool Init() override;
     bool CleanUp() override;
 
+    // Importa el FBX a Library (si hace falta) y crea sus GameObjects leyendo el modelo de Library
     GameObject* LoadFBX(const std::string& path);
+    // Importa la textura a Library (si hace falta) y se la pone a 'target' y a todos sus hijos
     void LoadTexture(const std::string& path, GameObject* target);
 
 private:
-    void ImportNode(const aiScene* scene, const aiNode* node, GameObject* go, const std::string& fbxPath);
-    void AttachMesh(const aiScene* scene, unsigned int meshIndex, GameObject* go, const std::string& fbxPath);
+    void ImportAssets();   // recorre Assets/ e importa lo que falte en Library/
+    std::filesystem::path EnsureInAssets(const std::filesystem::path& file) const;
+    std::string AssetKey(const std::filesystem::path& assetFile) const;
 
-    bool ApplyTextureFromMemory(const void* buffer, size_t size, const std::string& cacheName, ComponentMaterial* material);
-    bool ApplyTexture(const std::string& path, ComponentMaterial* material);
-    void ApplyTextureRecursive(const std::string& path, GameObject* go);
+    // Devuelven el UUID del recurso (0 si falla)
+    uint64_t ImportTextureFile(const std::filesystem::path& file);
+    uint64_t ImportEmbeddedTexture(const aiTexture* texture, const std::string& textureName, const std::string& keyBase, MetaFile& meta);
+    uint64_t ImportFBX(const std::filesystem::path& assetFile, const std::filesystem::path& sourceFile);
+
+    GameObject* InstantiateModel(uint64_t modelUUID);
+    void ApplyTextureRecursive(ResourceTexture* texture, GameObject* go);
 };

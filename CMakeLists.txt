@@ -37,3 +37,4 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 
 # Que Visual Studio arranque el motor y no ALL_BUILD
 set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+
